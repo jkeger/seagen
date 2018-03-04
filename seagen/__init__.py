@@ -1,1 +1,2 @@
-from seagen.objects import GenSphere
+from seagen.objects import GenSphere, GenIC
+import seagen.helper as helper
