@@ -398,6 +398,38 @@ class GenIC(object):
         return m
 
 
+    def seed_initial_tetra(self):
+        """
+        Seeds the initial tetrahedron, based on particle mass and inner
+        density. Creates:
+            self.parts_in_shells
+            self.shell_widths
+            self.inner_radii.
+        """
+
+        inner_density = self.density(0)
+        volume = self.part_mass / inner_density
+
+        # Tetrahedron formulae
+        radius = np.cbrt(6 * np.sqrt(2) * volume)
+
+        self.shell_widths = [radius]
+        self.parts_in_shells = [4]
+        self.inner_radii = [radius]
+
+        # Seed intial particles.
+
+        self.r.append([radius] * 4)
+        self.theta.append(
+            [2.186276, 0.955316, 0.955316, 2.186276]
+        )
+        self.phi.append(
+            [2*np.pi-2.356194, 2.356194, 2*np.pi-0.785398, 0.785398]
+        )
+
+        return
+
+
     def calculate_parts_in_shells(self):
         """
         Calculate the (approximate) number of particles in each shell.
@@ -407,9 +439,8 @@ class GenIC(object):
         """
         n_parts = self.total_mass / self.part_mass
 
-        self.parts_in_shells = [4]
-        self.shell_widths = [self.r_range[0]]
-        self.inner_radii = [0.]
+        self.seed_initial_tetra()
+
 
         prefactor = 4 * np.pi / 3
 
