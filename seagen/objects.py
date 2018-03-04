@@ -410,8 +410,9 @@ class GenIC(object):
         inner_density = self.density(0)
         volume = self.part_mass / inner_density
 
-        # Tetrahedron formulae
-        radius = np.cbrt(6 * np.sqrt(2) * volume)
+        # We actually care about a _sphere_ that encloses the
+        # Tetrahedrons rather than the volume of the tetra itself.
+        radius = np.cbrt(3 * volume / (4 * np.pi))
 
         self.shell_widths = [radius]
         self.parts_in_shells = [4]
@@ -441,17 +442,19 @@ class GenIC(object):
 
         self.seed_initial_tetra()
 
-
         prefactor = 4 * np.pi / 3
 
         while (self.inner_radii[-1] + self.shell_widths[-1]) < self.r_range[1]:
-            radius_core = sum(self.shell_widths)
+            dr_c = self.shell_widths[0]
+            radius_core = self.inner_radii[-1] + dr_c
             self.inner_radii.append(radius_core)
 
             tot_parts = sum(self.parts_in_shells)
-            density_core = tot_parts / (prefactor * radius_core**3)
+            density_core = self.part_mass * tot_parts / (prefactor * radius_core**3)
             density = self.density(radius_core)
-            dr = radius_core * np.cbrt(density_core / density)
+
+            print(density, density_core)
+            dr = dr_c * np.cbrt(density_core / density)
 
             mass_in_shell, _ = quad(
                 self.mass_in_shell,

@@ -69,7 +69,7 @@ def test_gen_tetra():
 def test_gen_ic():
 
     def density(r):
-        return 1.
+        return 10
 
     ics = GenIC(density, 0.1, (0.1, 10.))
 
@@ -106,4 +106,4 @@ def test_gen_ic():
     plt.savefig("test_gen_ic.png")
 
 if __name__ == "__main__":
-    test_gen_tetra()
+    test_gen_ic()
