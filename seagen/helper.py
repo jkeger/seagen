@@ -1,5 +1,7 @@
 """
 Helper functions for the seagen project.
+
+Created by: Josh Borrow (joshua.borrow@durham.ac.uk)
 """
 
 import numpy as np
@@ -46,7 +48,8 @@ def polar_to_cartesian(
         phi: float
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Converts spherical polar to cartesian.
+    Converts spherical polar to cartesian, and checks that they are valid
+    using check_valid_polar.
     """
 
     if check_valid_polar(r, theta, phi):

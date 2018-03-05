@@ -10,6 +10,10 @@ from seagen.helper import polar_to_cartesian
 
 
 def test_polar_to_cartesian():
+    """
+    Tests the polar to cartesian conversion by ensuring
+    that r is conserved.
+    """
     phi = np.random.rand(1000) * np.pi
     theta = np.random.rand(1000) * np.pi * 2
 

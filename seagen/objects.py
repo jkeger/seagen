@@ -1,5 +1,24 @@
 """
 Objects for SEAGen
+
+Created by: Josh Borrow (joshua.borrow@durham.ac.uk)
+
+This file includes:
+    
+    + GenSphere, an object for generating individual spheres of particles
+      using the SEA method
+
+    + GenIC, an object for generating a whole _sphere_ of particles using
+      the SEA method; this creates several GenSphere objects.
+
+Using these you are able to get the particle positions in spherical polar
+co-ordinates; note that here:
+
+    + r = [0, inf)
+    + phi = [0, 2pi)
+    + theta = [0, pi]
+
+unlike the usual definition. This is chosen to be compatible with the paper.
 """
 
 import numpy as np
@@ -17,6 +36,9 @@ except ImportError:
 
 class GenSphere(object):
     """
+    Generate a single sphere of particles at a fixed radius, using the
+    SEA method. You will need to 'stretch' the particles yourself, by
+    using the apply_stretch_factor method.
     """
     def __init__(self, N: int, r_inner: float, dr: float):
         """
@@ -343,6 +365,31 @@ class GenIC(object):
             r_range: Tuple[float]
         ):
         """
+        Generates a whole set of particles to represent a filled-in sphere
+        by creating several GenSphere objects.
+
+        Inputs
+        ------
+
+        @param density | callable | a function that describes density as a
+                                    function of radius. Should take a single
+                                    argument such that density = density(r).
+
+        @param part_mass | float | particle mass.
+
+        @param r_range | tuple[float] | a tuple describing the range of r
+                                        values to create particles over. At
+                                        the moment, the lower bound is ignored.
+
+
+        Outputs
+        -------
+
+        GenIC.r, GenIC.theta, GenIC.phi. Note that here:
+
+        + r = [0, inf)
+        + phi = [0, 2pi)
+        + theta = [0, pi]
         """
         self.density = density
         self.part_mass = part_mass

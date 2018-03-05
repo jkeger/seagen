@@ -11,6 +11,9 @@ from seagen.helper import polar_to_cartesian
 
 
 def test_gen_sphere():
+    """
+    Test the generation of a single sphere (without stretching).
+    """
     sphere = GenSphere(1000, 10, 0.1)
 
     x, y, z = polar_to_cartesian(sphere.r, sphere.phi, sphere.theta)
@@ -26,6 +29,9 @@ def test_gen_sphere():
 
 
 def test_gen_sphere_stretch():
+    """
+    Test the generation of a single sphere (with stretching).
+    """
     sphere = GenSphere(1000, 10, 0.01)
     sphere.apply_stretch_factor()
 
@@ -41,6 +47,11 @@ def test_gen_sphere_stretch():
     assert np.isclose(10.05, sphere.r, 1e-9).all()
 
 def test_gen_tetra():
+    """
+    Test the generation of the internal tetrahedron.
+
+    This must be done graphically.
+    """
 
     def density(r):
         return 1.
@@ -67,7 +78,11 @@ def test_gen_tetra():
 
 
 def test_gen_ic():
-
+    """
+    Tests the generaiton of a full sphere of particles, and makes a plot.
+    Other tests using SPH density will check if it conforms to the 'actual'
+    density.
+    """
     def density(r):
         return 10
 
