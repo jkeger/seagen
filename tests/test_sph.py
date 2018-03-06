@@ -1,8 +1,6 @@
 """
 Tests for the SPH portion of the code.
 """
-import matplotlib
-matplotlib.use("Agg")
 
 import seagen.sph as sph
 import matplotlib.pyplot as plt
