@@ -11,9 +11,11 @@ from numba import vectorize, float64
 from scipy.optimize import root
 from typing import Callable
 
+from .secant import run_iterations
+
 
 @vectorize([float64(float64, float64)])
-def cubic_spline(r: float, h: float) -> float:
+def cubic_spline(r, h):
     """
     The un-vectorized version of the cubic spline kernel, which is then vectorized
     by numba.
@@ -38,10 +40,10 @@ def cubic_spline(r: float, h: float) -> float:
     if q <= 1.0:
         q2 = q * q
         W = 1.0 - 1.5 * q2 * (1.0 - 0.5 * q)
-        w *= sigma_3
+        W *= sigma_3
     elif q <= 2.0:
         two_minus_q = 2 - q
-        two_minus_q_c = np.cube(two_minus_q)
+        two_minus_q_c = np.power(two_minus_q, 3)
         W = 0.25 * two_minus_q_c
         W *= sigma_3
     else:
@@ -178,12 +180,19 @@ class SPHDataset(object):
         self.x = x
         self.y = y
         self.z = z
+        self.m = m
+        
         self.eta = eta
         self.h_init = h_init
         self.kernel = kernel
         self.eos = eos
         
         self.hsml = np.ones_like(self.x) * self.h_init
+        
+        print("Calculating dr matrix")
+        self.calculate_r()
+        print("Running root-finding for h")
+        self.update_h()
         
         return
     
@@ -234,8 +243,6 @@ class SPHDataset(object):
         
         self.densities = matrix.sum(1)
         
-        del matrix
-        
         return self.densities
     
     
@@ -248,38 +255,30 @@ class SPHDataset(object):
         """
         
         density = self.get_density(h)
+        print(h[::100])
         
         expected_h = self.eta * np.cbrt(self.m/density)
+        print(expected_h[::100])
+        print()
         
-        return expected_h - h
+        diff = expected_h - h
+        
+        return diff
     
     
-    def update_h(self, tol=1e-4) -> np.ndarray:
+    def update_h(self) -> np.ndarray:
         """
         Updates the smoothing lengths.
         """
         
-        output = root(
-            self.constraint_equation,
+        output = run_iterations(
             self.hsml,
-            tol=tol
+            self.constraint_equation,
+            0.1,
+            30,
         )
         
-        self.hsml = output.x
+        self.hsml = output
         
         return self.hsml
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-    
-    
-    
