@@ -255,11 +255,8 @@ class SPHDataset(object):
         """
         
         density = self.get_density(h)
-        print(h[::100])
         
         expected_h = self.eta * np.cbrt(self.m/density)
-        print(expected_h[::100])
-        print()
         
         diff = expected_h - h
         
