@@ -6,7 +6,7 @@ Created by: Josh Borrow
 
 import numpy as np
 from numba import vectorize, float64
-from typing import Callable
+from typing import Callable, Tuple
 
 
 @vectorize([float64(float64, float64, float64, float64)])
@@ -44,7 +44,7 @@ def initial_conditions(
         f: Callable,
         extra_args=None,
         tol=0.1,
-    ) -> np.ndarray, np.ndarray, np.ndarray, np.ndarray:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Get the initial conditions for the secant method.
 
@@ -68,7 +68,7 @@ def initial_conditions(
     f_x_n_1 = f(x_n_1)
     f_x_n_2 = f(x)
 
-    return x_n_1, x_n_2, f_x_n_1, f_x_n_2
+    return x_n_1, x, f_x_n_1, f_x_n_2
 
 
 def run_iterations(
@@ -77,7 +77,7 @@ def run_iterations(
         tol: float,
         n_calls: int,
         extra_args=None
-    )
+    ) -> np.ndarray:
     """
     Run the secant method iterations up to a tolerence of tol and with a
     maximum number of iterations ncalls.
