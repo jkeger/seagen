@@ -1,4 +1,6 @@
 *.pyc
 .cache/*
 *.png
+*.ipynb_checkpoints/
+.pytest_cache/*
 
