@@ -10,6 +10,7 @@ import numpy as np
 from numba import vectorize, float64
 from scipy.optimize import root
 from typing import Callable
+from tqdm import tqdm
 
 from .secant import run_iterations
 
@@ -189,44 +190,48 @@ class SPHDataset(object):
         
         self.hsml = np.ones_like(self.x) * self.h_init
         
-        print("Calculating dr matrix")
-        self.calculate_r()
         print("Running root-finding for h")
         self.update_h()
         
         return
     
     
-    def calculate_r(self) -> np.ndarray:
+    def calculate_r(self, x: float, y: float, z: float) -> np.ndarray:
         """
-        Calculates an nxn matrix of r displacements.
-        
-        Because python function calls are so expensive, I hope that this will actually
-        speed things up.
-        
-        Stores it in self.dr
+        Calculates an n long array of r displacements.
         """
         
-        dx = np.square(self.x - self.x[:, np.newaxis])
-        dy = np.square(self.y - self.y[:, np.newaxis])
-        dz = np.square(self.z - self.z[:, np.newaxis])
+        dx = np.square(self.x - x)
+        dy = np.square(self.y - y)
+        dz = np.square(self.z - z)
         
-        self.dr = np.sqrt(dx + dy + dz)
+        dr = np.sqrt(dx + dy + dz)
         
         del dx, dy, dz
         
-        return self.dr
+        return dr
     
     
-    def calculate_kernels(self, h: np.ndarray) -> np.ndarray:
+    def calculate_kernels(self, dr: np.ndarray, h: float) -> np.ndarray:
         """
         Calculate the kernel values. Returns them.
-        
-        The smoothing lenghts are passed as a parameter for compatibility with the
-        root-finding algorithms.
         """
         
-        return self.kernel(self.dr, h)
+        return self.kernel(dr, h)
+
+
+    def calculate_density(self, x, y, z, h):
+        """
+        Calculate density for a single particle.
+        """
+
+        dr = self.calculate_r(x, y, z)
+
+        kernels = self.calculate_kernels(dr, h)
+
+        weighted = kernels * self.m
+
+        return weighted.sum()
 
     
     def get_density(self, h: np.ndarray) -> np.ndarray:
@@ -238,10 +243,22 @@ class SPHDataset(object):
         
         Stores it in self.densities and returns it.
         """
-        
-        matrix = self.calculate_kernels(h) * self.m
-        
-        self.densities = matrix.sum(1)
+
+        self.densities = np.array([
+            self.calculate_density(
+                x=x,
+                y=y,
+                z=z,
+                h=hsml
+            ) for x, y, z, hsml in tqdm(
+                zip(
+                    self.x,
+                    self.y,
+                    self.z,
+                    h
+                )
+            )
+        ])
         
         return self.densities
     
