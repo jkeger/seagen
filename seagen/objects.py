@@ -4,12 +4,12 @@ Objects for SEAGen
 Created by: Josh Borrow (joshua.borrow@durham.ac.uk)
 
 This file includes:
-    
-    + GenSphere, an object for generating individual spheres of particles
+
+    + GenShell, an object for generating individual spheres of particles
       using the SEA method
 
     + GenIC, an object for generating a whole _sphere_ of particles using
-      the SEA method; this creates several GenSphere objects.
+      the SEA method; this creates several GenShell objects.
 
 Using these you are able to get the particle positions in spherical polar
 co-ordinates; note that here:
@@ -34,22 +34,22 @@ except ImportError:
         pass
 
 
-class GenSphere(object):
+class GenShell(object):
     """
-    Generate a single sphere of particles at a fixed radius, using the
+    Generate a single spherical shell of particles at a fixed radius, using the
     SEA method. You will need to 'stretch' the particles yourself, by
     using the apply_stretch_factor method.
     """
     def __init__(self, N: int, r_inner: float, dr: float):
         """
-        Generates a single sphere.
+        Generates a single spherical shell.
 
         Access the particle positions with:
-            GenSphere.r
-            GenSphere.theta
-            GenSphere.phi.
+            GenShell.r
+            GenShell.theta
+            GenShell.phi.
 
-        
+
         Inputs
         ------
 
@@ -68,14 +68,14 @@ class GenSphere(object):
         self.A_reg = 4 * np.pi / N
 
         self.get_collar_areas()
-        self.update_collar_heights()
+        self.update_collar_thetas()
         self.get_point_positions()
         self.get_r()
-        
 
-    def get_cap(self) -> float:
+
+    def get_cap_theta(self) -> float:
         """
-        Gets the cap colatitude.
+        Gets the cap colatitude, theta_cap.
 
         Equation 3.
         """
@@ -85,26 +85,26 @@ class GenSphere(object):
 
     def get_number_of_collars(self) -> float:
         """
-        Gets the number of collars N_col.
+        Gets the number of collars, N_col.
 
         Equation 4.
         """
 
-        theta_cap = self.get_cap()
+        theta_cap = self.get_cap_theta()
 
         self.N_col = int(round((np.pi - 2 * theta_cap)/(np.sqrt(self.A_reg))))
 
         return self.N_col
 
 
-    def get_collar_heights(self) -> np.ndarray:
+    def get_collar_thetas(self) -> np.ndarray:
         """
         Gets the theta of all of the collars, and stores them in
         self.collars, as well as returning them.
         """
 
         n_collars = self.get_number_of_collars()
-        cap_height = self.get_cap()
+        cap_height = self.get_cap_theta()
         height_of_collar = (np.pi - 2 * cap_height) / n_collars
 
         # Allocate collars array
@@ -124,48 +124,48 @@ class GenSphere(object):
         ) -> float:
         """
         Gets the area of a collar given the collar heights of itself and its
-        neighbor.
+        neighbour.
 
         Equation 5.
         """
-        
-        s_t_i = np.sin(theta_i / 2)**2
-        s_t_i_m_o = np.sin(theta_i_minus_one / 2)**2
 
-        return 4 * np.pi * (s_t_i - s_t_i_m_o)
+        sin2_theta_i = np.sin(theta_i / 2)**2
+        sin2_theta_i_m_o = np.sin(theta_i_minus_one / 2)**2
+
+        return 4 * np.pi * (sin2_theta_i - sin2_theta_i_m_o)
 
 
     def get_collar_areas(self) -> np.ndarray:
         """
-        Gets the collar areas and stores them in self.collar_areas.
+        Gets the collar collar_areas and stores them in self.collar_areas.
         """
 
-        collar_heights = self.get_collar_heights()
+        collar_thetas = self.get_collar_thetas()
 
         self.collar_areas = np.empty(self.N_col)
-        
+
         # The cap has an area of A_reg
         self.collar_areas[0] = self.A_reg
 
         self.collar_areas[1:] = self.get_area_of_collar(
-            collar_heights[1:],
-            collar_heights[:-1]
+            collar_thetas[1:],
+            collar_thetas[:-1]
         )
 
         return self.collar_areas
 
 
-    def get_ideal_number_of_regions_in_collar(self, A: float) -> float:
+    def get_ideal_n_regions_in_collar(self, A_col: float) -> float:
         """
         Gets the ideal number of regions in a collar.
 
         Equation 7.
         """
 
-        return A / self.A_reg
+        return A_col / self.A_reg
 
 
-    def get_regions_in_collars(self) -> np.ndarray:
+    def get_n_regions_in_collars(self) -> np.ndarray:
         """
         Gets the number of regions in each collar.
 
@@ -173,34 +173,33 @@ class GenSphere(object):
 
         Equation 8/9.
         """
-        
+
         # Because of the discrepancy counter, we will just use a regular loop.
 
         n_regions_in_collars = np.empty(self.N_col, dtype=int)
-        areas = self.get_collar_areas()
+        collar_areas = self.get_collar_areas()
 
         loop = enumerate(
             np.nditer(n_regions_in_collars, op_flags=["readwrite"])
         )
-        
+
         discrepancy = 0
 
         for i, N_i in loop:
-            ideal_number = self.get_ideal_number_of_regions_in_collar(areas[i])
-            N_i[...] = int(round(ideal_number + discrepancy))
+            ideal_n_reg = self.get_ideal_n_regions_in_collar(collar_areas[i])
+            N_i[...] = int(round(ideal_n_reg + discrepancy))
 
-            discrepancy = N_i - ideal_number
+            discrepancy = N_i - ideal_n_reg
 
         self.n_regions_in_collars = n_regions_in_collars
-        
+
         return self.n_regions_in_collars
 
 
-    def update_collar_heights(self) -> np.ndarray:
+    def update_collar_thetas(self) -> np.ndarray:
         """
-        After get_regions_in_collars, we must update the collar heights due to
-        there being slightly different numbers of regions in each collar than
-        expected.
+        After get_n_regions_in_collars, we must update the collar thetas due to
+        the now integer numbers of regions in each collar instead of the ideal.
 
         Also returns self.collars.
 
@@ -208,12 +207,13 @@ class GenSphere(object):
         """
 
         # First we must get the cumulative sums of the particle numbers
-        n_regions = self.get_regions_in_collars()
+        n_regions = self.get_n_regions_in_collars()
 
         # Unsure if this is correct; should we be including 'self' terms?
-        summed = np.cumsum(n_regions)
+        n_regions_cum = np.cumsum(n_regions)
 
-        self.collars = 2 * np.arcsin(np.sqrt(summed * self.A_reg / (4 * np.pi)))
+        self.collars = 2 * np.arcsin(np.sqrt(n_regions_cum * self.A_reg / \
+                                             (4 * np.pi)))
 
         return self.collars
 
@@ -247,14 +247,14 @@ class GenSphere(object):
 
         Stores in self.theta, self.phi
 
-        Equation 11/12.
+        Equation 11,12.
         """
 
         total_number_of_particles = self.n_regions_in_collars.sum()
 
         self.theta = np.empty(total_number_of_particles)
         self.phi = np.empty(total_number_of_particles)
-    
+
         # All regions in a collar 'share' a theta.
         theta = np.zeros(self.N_col)
         # The first particle is at the 'top'
@@ -280,8 +280,8 @@ class GenSphere(object):
                     d_phi[i-1]
                 )
 
-                # Also need to do the offset to ensure that successive collars
-                # No not create overlaps.
+                # Also add a random initial offset to ensure that successive
+                # collars do not create lines of adjacent particles.
                 m = np.random.randint(0, self.n_regions_in_collars[i-1])
                 phi_0_i[...] += (m * d_phi[i-1])
 
@@ -301,14 +301,14 @@ class GenSphere(object):
 
             # Update theta
             self.theta[total_number_covered:upper_bound] = theta[region]
-            
+
             # Equation 12
-            j = np.arange(number_of_parts, dtype=float) 
+            j = np.arange(number_of_parts, dtype=float)
             these_phi = phi_0[region] + j * d_phi[region]
             self.phi[total_number_covered:upper_bound] = these_phi
 
             total_number_covered = upper_bound
-        
+
 
         self.theta %= np.pi
         self.phi %= 2 * np.pi
@@ -337,7 +337,7 @@ class GenSphere(object):
     def apply_stretch_factor(self, a=0.2, b=2.0):
         """
         Applys the SEA stretch factor; this must be done manually by the user.
-        
+
         Equation 13.
         """
 
@@ -366,7 +366,7 @@ class GenIC(object):
         ):
         """
         Generates a whole set of particles to represent a filled-in sphere
-        by creating several GenSphere objects.
+        by creating several GenShell objects.
 
         Inputs
         ------
@@ -399,7 +399,7 @@ class GenIC(object):
         self.theta = []
         self.phi = []
 
-        # Do Processing
+        # Do processing
         self.calculate_total_mass()
         self.calculate_parts_in_shells()
         self.create_all_shells()
@@ -407,25 +407,25 @@ class GenIC(object):
         # Turn our list of arrays into a single long array.
         self.stack_arrays()
 
-    
-    def make_single_row(self, N: int, r_inner: float, dr: float):
-        """
-        Make a single row (i.e. sphere).
-        """
-        this_sphere = GenSphere(N=N, r_inner=r_inner, dr=dr)
-        this_sphere.apply_stretch_factor()
 
-        self.r.append(this_sphere.r)
-        self.theta.append(this_sphere.theta)
-        self.phi.append(this_sphere.phi)
+    def make_single_shell(self, N: int, r_inner: float, dr: float):
+        """
+        Make a single spherical shell (i.e. one row of positions).
+        """
+        this_shell = GenShell(N=N, r_inner=r_inner, dr=dr)
+        this_shell.apply_stretch_factor()
+
+        self.r.append(this_shell.r)
+        self.theta.append(this_shell.theta)
+        self.phi.append(this_shell.phi)
 
         return
 
 
-    def mass_in_shell(self, r: float) -> float:
+    def mass_in_profile_shell(self, r: float) -> float:
         """
-        The mass in a shell of radius r (the density function multiplied by the
-        jacobian).
+        The mass in an infinitesimal shell at profile radius r.
+        (The density profile function multiplied by the jacobian.)
         """
 
         return 4 * np.pi * r * r * self.density(r)
@@ -438,17 +438,18 @@ class GenIC(object):
         Stores the total mass as self.total_mass.
         """
 
-        m, _ = quad(self.mass_in_shell, *self.r_range)
+        m, _ = quad(self.mass_in_profile_shell, *self.r_range)
 
         self.total_mass = m
 
         return m
 
 
-    def seed_initial_tetra(self):
+    def make_central_tetra(self):
         """
-        Seeds the initial tetrahedron, based on particle mass and inner
-        density. Creates:
+        Sets the central tetrahedron paritcle positions, based on particle mass
+        and inner density.
+        Creates:
             self.parts_in_shells
             self.shell_widths
             self.inner_radii.
@@ -458,14 +459,15 @@ class GenIC(object):
         volume = self.part_mass / inner_density
 
         # We actually care about a _sphere_ that encloses the
-        # Tetrahedrons rather than the volume of the tetra itself.
+        # tetrahedrons rather than the volume of the tetra itself.
+        ## Need to find the radius that encloses 4*m_part for non-const density!
         radius = np.cbrt(3 * volume / (4 * np.pi))
 
         self.shell_widths = [radius]
         self.parts_in_shells = [4]
-        self.inner_radii = [radius]
+        self.inner_radii = [radius] ## Not zero?
 
-        # Seed intial particles.
+        # Get intial particle positions.
 
         self.r.append([radius] * 4)
         self.theta.append(
@@ -482,18 +484,18 @@ class GenIC(object):
         """
         Calculate the (approximate) number of particles in each shell.
 
-        Stores the nparts as self.parts_in_shells, and the shell widths in
+        Stores the numbers as self.parts_in_shells, and the shell widths in
         self.shell_widths. Stores inner radii as self.inner_radii.
         """
         n_parts = self.total_mass / self.part_mass
 
-        self.seed_initial_tetra()
+        self.make_central_tetra()
 
         prefactor = 4 * np.pi / 3
 
         while (self.inner_radii[-1] + self.shell_widths[-1]) < self.r_range[1]:
-            dr_c = self.shell_widths[0]
-            radius_core = self.inner_radii[-1] + dr_c
+            dr_core = self.shell_widths[0]
+            radius_core = self.inner_radii[-1] + dr_core
             self.inner_radii.append(radius_core)
 
             tot_parts = sum(self.parts_in_shells)
@@ -501,24 +503,25 @@ class GenIC(object):
             density = self.density(radius_core)
 
             print(density, density_core)
-            dr = dr_c * np.cbrt(density_core / density)
+            dr = dr_core * np.cbrt(density_core / density)
 
-            mass_in_shell, _ = quad(
-                self.mass_in_shell,
+            ## Need to calculate the actual enclosed mass in the particle shell!
+            mass_in_profile_shell, _ = quad(
+                self.mass_in_profile_shell,
                 radius_core,
                 radius_core+dr
             )
-            parts_in_shell = int(round(mass_in_shell / self.part_mass))
+            parts_in_shell = int(round(mass_in_profile_shell / self.part_mass))
 
             self.shell_widths.append(dr)
             self.parts_in_shells.append(parts_in_shell)
 
             print(f"dr: {dr}, parts: {parts_in_shell}, inner: {radius_core}")
-            
+
 
         return
 
-    
+
     def create_all_shells(self):
         """
         Create all shells! Essentially loops over all of the parameters.
@@ -527,7 +530,7 @@ class GenIC(object):
         n_shells = len(self.shell_widths)
 
         for shell in tqdm(range(n_shells)):
-            self.make_single_row(
+            self.make_single_shell(
                 N=self.parts_in_shells[shell],
                 r_inner=self.inner_radii[shell],
                 dr=self.shell_widths[shell]

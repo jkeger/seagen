@@ -7,7 +7,8 @@ algorithm for SPH spheres.
 Requirements:
 
 + `python3.6.0` or above
-+ `tqdm`, `matplotlib`, `scipy`, `numpy` (available through `pip3 install -r requrements.txt`)
++ `tqdm`, `matplotlib`, `scipy`, `numpy`, `typing`, `numba`
+    (available through `pip3 install -r requrements.txt`)
 
 Currently this package is _not_ on PyPI but we plan to release it there once
 completed.
@@ -29,3 +30,18 @@ Contributing
 
 Pull requests are more than welcome.
 
+
+
+# ======
+Jacob misc readme
+# ======
+
+# Initial setup:
+git clone https://github.com/jkeger/seagen.git
+python3 -m venv seaenv
+source seaenv/bin/activate
+pip3 install -r requirements.txt
+
+# Test
+pip3 install pytest
+pytest
