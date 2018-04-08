@@ -23,7 +23,7 @@ def check_valid_polar(r: np.ndarray, theta: np.ndarray, phi: np.ndarray) -> bool
 
     If not, it raises an InvalidCoordinate exception.
     """
-    
+
     if not ((min(r) >= 0.) and (np.isfinite(r).all())):
         raise InvalidCoordinate(
             "Your r values are not bounded between 0 and infinity"
@@ -33,7 +33,7 @@ def check_valid_polar(r: np.ndarray, theta: np.ndarray, phi: np.ndarray) -> bool
         raise InvalidCoordinate(
             "Your theta values are not bounded between 0 and 2 pi"
         )
-    
+
     if not ((min(phi) >= 0.) and (max(phi) <= np.pi)):
         raise InvalidCoordinate(
             "Your phi values are not bounded between 0 and pi"
@@ -52,13 +52,16 @@ def polar_to_cartesian(
     using check_valid_polar.
     """
 
-    if check_valid_polar(r, theta, phi):
+    ### Temporarily ignored
+#    if check_valid_polar(r, theta, phi):
+    if True:
         x = r * np.cos(theta) * np.sin(phi)
         y = r * np.sin(theta) * np.sin(phi)
         z = r * np.cos(phi)
 
         return x, y, z
-    
+
     else:
         return None, None, None
+
 

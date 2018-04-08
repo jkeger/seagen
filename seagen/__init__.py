@@ -1,4 +1,4 @@
-from seagen.objects import GenSphere, GenIC
+from seagen.objects import GenShell
 
 import seagen.helper as helper
 import seagen.sph as sph

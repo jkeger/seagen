@@ -15,7 +15,7 @@ Requirements:
 
 + `python3.6.0` or above
 + `tqdm`, `matplotlib`, `scipy`, `numpy`, `typing`, `numba`
-    (available through `pip3 install -r requrements.txt`)
+    (available through `pip3 install -r requirements.txt`)
 
 Currently this package is _not_ on PyPI but we plan to release it there once
 completed.

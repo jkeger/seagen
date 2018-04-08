@@ -39,7 +39,7 @@ class GenShell(object):
     Generate a single spherical shell of particles at a fixed radius, using the
     SEA method.
     """
-    def __init__(self, N: int, r: float, do_stretch=True: bool):
+    def __init__(self, N: int, r: float, do_stretch=True):
         """
         Generates a single spherical shell.
 
@@ -54,16 +54,16 @@ class GenShell(object):
 
         @param N | integer | the number of cells/particles to create.
 
-        @param r | float | the radius of the shell
+        @param r | float | the radius of the shell.
 
-        @param do_stretch | opt. bool | Set False to _not_ do the SEA method's
-            latitude stretching
+        @param do_stretch | (opt.) bool | set False to not do the SEA method's
+            latitude stretching.
         """
 
         self.N = N
         self.r = r * np.ones(N)
 
-        # Derived Properties
+        # Derived properties
         self.A_reg = 4 * np.pi / N
 
         self.get_collar_areas()
@@ -85,7 +85,7 @@ class GenShell(object):
 
     def get_number_of_collars(self) -> float:
         """
-        Gets the number of collars, N_col.
+        Gets the number of collars, N_col (not including the polar caps).
 
         Equation 4.
         """
@@ -99,8 +99,8 @@ class GenShell(object):
 
     def get_collar_thetas(self) -> np.ndarray:
         """
-        Gets the theta of all of the collars, and stores them in
-        self.collars, as well as returning them.
+        Gets the top theta of all of the collars, including the bottom cap's
+        theta, and stores them in self.collars as well as returning them.
         """
 
         n_collars = self.get_number_of_collars()
@@ -108,16 +108,15 @@ class GenShell(object):
         height_of_collar = (np.pi - 2 * cap_height) / n_collars
 
         # Allocate collars array
-        self.collars = np.arange(n_collars, dtype=float)
-        # Collars have a fixed height
+        self.collars = np.arange(n_collars+1, dtype=float)
+        # Collars have a fixed height initially
         self.collars *= height_of_collar
-        # Need to account for the cap being an 'offset'
+        # Starting at the bottom of the top polar cap
         self.collars += (cap_height)
-
         return self.collars
 
 
-    def get_area_of_collar(
+    def get_collar_area(
             self,
             theta_i: float,
             theta_i_minus_one: float
@@ -137,17 +136,14 @@ class GenShell(object):
 
     def get_collar_areas(self) -> np.ndarray:
         """
-        Gets the collar collar_areas and stores them in self.collar_areas.
+        Gets the collar areas and stores them in self.collar_areas.
         """
 
         collar_thetas = self.get_collar_thetas()
 
         self.collar_areas = np.empty(self.N_col)
 
-        # The cap has an area of A_reg
-        self.collar_areas[0] = self.A_reg
-
-        self.collar_areas[1:] = self.get_area_of_collar(
+        self.collar_areas[:] = self.get_collar_area(
             collar_thetas[1:],
             collar_thetas[:-1]
         )
@@ -171,7 +167,7 @@ class GenShell(object):
 
         Stores them in self.n_regions_in_collars.
 
-        Equation 8/9.
+        Equation 8,9.
         """
 
         # Because of the discrepancy counter, we will just use a regular loop.
@@ -206,11 +202,10 @@ class GenShell(object):
         Equation 10.
         """
 
-        # First we must get the cumulative sums of the particle numbers
-        n_regions = self.get_n_regions_in_collars()
-
-        # Unsure if this is correct; should we be including 'self' terms?
-        n_regions_cum = np.cumsum(n_regions)
+        # First we must get the cumulative number of regions in each collar,
+        # including the top polar cap
+        n_regions_cum = np.cumsum(self.get_n_regions_in_collars()) + 1
+        n_regions_cum = np.append([1], n_regions_cum)
 
         self.collars = 2 * np.arcsin(np.sqrt(n_regions_cum * self.A_reg / \
                                              (4 * np.pi)))
@@ -219,51 +214,56 @@ class GenShell(object):
 
 
     def choose_phi_0(self,
-            N_i: float,
-            N_i_plus_one: float,
+            N_i: int,
+            N_i_minus_one: int,
             d_phi_i: float,
-            d_phi_i_plus_one: float,
+            d_phi_i_minus_one: float,
         ) -> float:
         """
-        Choose the value of phi0. This comes from the discussion paragraph
-        after Equation 12.
+        Choose the starting longitude of each collar, phi_0, using the number
+        of regions in this collar and the previous one.
+
+        Paragraph following Equation 12.
         """
 
-        N_i_even = (N_i % 2) - 1
-        N_i_plus_one_even = (N_i_plus_one % 2) - 1
+        N_i_even = abs((N_i % 2) - 1)
+        N_i_minus_one_even = abs((N_i_minus_one % 2) - 1)
 
-        if N_i_even != N_i_plus_one_even:
+        if N_i_even != N_i_minus_one_even:
             # Exclusive or
             return 0.5 * (N_i_even * d_phi_i +
-                          N_i_plus_one_even * d_phi_i_plus_one)
+                          N_i_minus_one_even * d_phi_i_minus_one)
         else:
-            return max(d_phi_i, d_phi_i_plus_one)
+            return 0.5 * min(d_phi_i, d_phi_i_minus_one)
 
 
     def get_point_positions(self) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Gets the point positions (theta and phi) using the above
-        calculated data. Also returns theta, phi.
+        Sets the point positions (theta and phi) using the above-calculated
+        data.
 
-        Stores in self.theta, self.phi
+        Stores in self.theta, self.phi and also returns them.
 
         Equation 11,12.
         """
 
-        total_number_of_particles = self.n_regions_in_collars.sum()
+        total_number_of_particles = self.n_regions_in_collars.sum() + 2
 
         self.theta = np.empty(total_number_of_particles)
         self.phi = np.empty(total_number_of_particles)
 
-        # All regions in a collar 'share' a theta.
-        theta = np.zeros(self.N_col)
-        # The first particle is at the 'top'
-        theta[0] = 0.0
-        theta[1:] = 0.5 * (self.collars[:-1] + self.collars[1:])
+        # The cap particles are at the poles, listed at the end of these arrays.
+        self.theta[-2] = 0.0
+        self.theta[-1] = np.pi
+        self.phi[-2] = 0.0
+        self.phi[-1] = 0.0
 
+        # All regions in a collar are at the same colatitude, theta.
+        theta = np.zeros(self.N_col + 2)
+        theta[:-2] = 0.5 * (self.collars[:-1] + self.collars[1:])
 
-        # The 'phi' array is somewhat more complicated.
-
+        # Particles in each collar are equally spaced in longitude, phi,
+        # and offset appropriately from the previous collar.
         d_phi = 2 * np.pi / self.n_regions_in_collars
         phi_0 = np.empty(self.N_col)
 
@@ -272,8 +272,12 @@ class GenShell(object):
         )
 
         for i, phi_0_i in loop:
-            try:
-                phi_0_i[...] = self.choose_phi_0(
+            # The first collar has no previous collar to rotate away from
+            # so doesn't need an offset.
+            if i == 0:
+                phi_0_i = 0
+            else:
+                phi_0_i = self.choose_phi_0(
                     self.n_regions_in_collars[i],
                     self.n_regions_in_collars[i-1],
                     d_phi[i],
@@ -281,58 +285,57 @@ class GenShell(object):
                 )
 
                 # Also add a random initial offset to ensure that successive
-                # collars do not create lines of adjacent particles.
+                # collars do not create lines of ~adjacent particles.
+                # (Second paragraph following Equation 12.)
                 m = np.random.randint(0, self.n_regions_in_collars[i-1])
-                phi_0_i[...] += (m * d_phi[i-1])
+                phi_0_i += (m * d_phi[i-1])
 
-            except IndexError:
-                # This must be the first element, which is at the poles.
-                # (i.e. phi can be anything...)
-                phi_0_i[...] = 0
-
-        # We can now fill the arrays.
-        total_number_covered = 0
+        # Fill the position arrays.
+        cumulative_number = 0
         loop = enumerate(
             np.nditer(self.n_regions_in_collars, op_flags=["readonly"])
         )
 
-        for region, number_of_parts in loop:
-            upper_bound = number_of_parts + total_number_covered
+        for region, n_regions_in_collar in loop:
+            next_cumulative_number = n_regions_in_collar + cumulative_number
 
-            # Update theta
-            self.theta[total_number_covered:upper_bound] = theta[region]
+            # Set theta
+            self.theta[cumulative_number:next_cumulative_number] = theta[region]
 
-            # Equation 12
-            j = np.arange(number_of_parts, dtype=float)
+            # Set phi (Equation 12)
+            j = np.arange(n_regions_in_collar, dtype=float)
             these_phi = phi_0[region] + j * d_phi[region]
-            self.phi[total_number_covered:upper_bound] = these_phi
+            self.phi[cumulative_number:next_cumulative_number] = these_phi
 
-            total_number_covered = upper_bound
+            cumulative_number = next_cumulative_number
 
-
-        self.theta %= np.pi
         self.phi %= 2 * np.pi
+        self.theta %= np.pi
+        self.theta[-1] = np.pi
 
         return self.theta, self.phi
 
 
     def apply_stretch_factor(self, a=0.2, b=2.0):
         """
-        Applys the SEA stretch factor.
+        Apply the SEA stretch factor.
 
         Equation 13.
         """
 
         pi_over_2 = np.pi / 2
-        sqrtN = np.sqrt(self.N)
+        inv_sqrtN = 1 / np.sqrt(self.N)
 
-        exponential_factor = - sqrtN * \
-                               (pi_over_2 - abs(pi_over_2 - self.theta)) / \
-                               (np.pi * b)
+        prefactor = (pi_over_2 - self.theta) * a * inv_sqrtN
 
-        prefactor = (pi_over_2 - self.theta) * a / sqrtN
+        exp_factor = - ((pi_over_2 - abs(pi_over_2 - self.theta))
+                        / (np.pi * b * inv_sqrtN))
 
-        self.theta += (prefactor * np.exp(exponential_factor))
+        self.theta += (prefactor * np.exp(exp_factor))
+
+        # Leave the cap points at the poles
+        self.theta[-2] = 0.0
+        self.theta[-1] = np.pi
 
         return
 
@@ -498,7 +501,7 @@ class GenIC(object):
             self.shell_widths.append(dr)
             self.parts_in_shells.append(parts_in_shell)
 
-            print(f"dr: {dr}, parts: {parts_in_shell}, inner: {radius_core}")
+#            print(f"dr: {dr}, parts: {parts_in_shell}, inner: {radius_core}")
 
 
         return
