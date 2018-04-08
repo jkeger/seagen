@@ -8,7 +8,6 @@ conditions with accurate densities (Kegerreis et al., 2018).
 Jacob Kegerreis and Josh Borrow
 
 jacob.kegerreis@durham.ac.uk
-joshua.borrow@durham.ac.uk
 
 --------------
 Requirements:
@@ -31,6 +30,12 @@ Current Status
 + Similar re-making needed of test codes and examples.
 + Documentation will obviously need revising too.
 
+Update:
+
++ Single shell generation now fixed!
++ Fresh-start profile functions also need to have infrastructure for
+  discontinuities and the necessary iterating of shell thicknesses to match the
+  particle-shell and profile boundaries.
 
 Contributing
 ------------
