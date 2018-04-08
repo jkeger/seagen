@@ -1,5 +1,4 @@
 # SEAGen
-======
 
 A work-in-progress python implementation of the stretched-equal-area (SEA)
 algorithm for generating spherically symmetric arrangements of particles for
@@ -10,7 +9,6 @@ Jacob Kegerreis, Josh Borrow
 
 jacob.kegerreis@durham.ac.uk
 
---------------
 ## Requirements:
 
 + `python3.6.0` or above
@@ -21,7 +19,6 @@ Currently this package is not on PyPI but we plan to release it there once
 completed.
 
 ## Current Status
---------------
 
 + Fresh start: Keeping initial implementation of the single-shell generation
   from jborrow with just a few checks and tweaks to do, but, for simplicity,
@@ -39,7 +36,6 @@ completed.
   particle-shell and profile boundaries.
 
 ## Contributing
-------------
 
 Pull requests are more than welcome.
 
