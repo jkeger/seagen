@@ -37,10 +37,9 @@ except ImportError:
 class GenShell(object):
     """
     Generate a single spherical shell of particles at a fixed radius, using the
-    SEA method. You will need to 'stretch' the particles yourself, by
-    using the apply_stretch_factor method.
+    SEA method.
     """
-    def __init__(self, N: int, r_inner: float, dr: float):
+    def __init__(self, N: int, r: float, do_stretch=True: bool):
         """
         Generates a single spherical shell.
 
@@ -55,14 +54,14 @@ class GenShell(object):
 
         @param N | integer | the number of cells/particles to create.
 
-        @param r_inner | float | the inner radius of the shell
+        @param r | float | the radius of the shell
 
-        @param dr | float | width of the shell.
+        @param do_stretch | opt. bool | Set False to _not_ do the SEA method's
+            latitude stretching
         """
 
         self.N = N
-        self.r_inner = r_inner
-        self.dr = dr
+        self.r = r * np.ones(N)
 
         # Derived Properties
         self.A_reg = 4 * np.pi / N
@@ -70,7 +69,8 @@ class GenShell(object):
         self.get_collar_areas()
         self.update_collar_thetas()
         self.get_point_positions()
-        self.get_r()
+        if do_stretch:
+            self.apply_stretch_factor()
 
 
     def get_cap_theta(self) -> float:
@@ -316,27 +316,9 @@ class GenShell(object):
         return self.theta, self.phi
 
 
-    def get_r(self) -> np.ndarray:
-        """
-        Gets the r values; this is defined in the paper as being:
-
-          r + 0.5(dr/2) + 0.5(r_{mw}).
-        """
-        warn(
-            Warning("get_r not fully implemented; currently only uses r+dr/2")
-        )
-
-        # Number of particles may have changed...
-        n = self.n_regions_in_collars.sum()
-
-        self.r = (self.r_inner + self.dr/2) * np.ones(n)
-
-        return self.r
-
-
     def apply_stretch_factor(self, a=0.2, b=2.0):
         """
-        Applys the SEA stretch factor; this must be done manually by the user.
+        Applys the SEA stretch factor.
 
         Equation 13.
         """
