@@ -1,7 +1,7 @@
 """
 Helper functions for the seagen project.
 
-Created by: Josh Borrow (joshua.borrow@durham.ac.uk)
+Created by: Josh Borrow (joshua.borrow@durham.ac.uk) and Jacob Kegerreis
 """
 
 import numpy as np
@@ -65,3 +65,15 @@ def polar_to_cartesian(
         return None, None, None
 
 
+def get_shell_mass(r_inner: float, r_outer: float, rho: float) -> float:
+    """
+    Calculate the mass of a uniform-density shell.
+    """
+    return 4/3*np.pi * rho * (r_outer**3 - r_inner**3)
+
+
+def get_mass_weighted_mean(A1_mass: np.ndarray, A1_value: np.ndarray) -> float:
+    """
+    Calculate the mean of the value array weighted by the mass array.
+    """
+    return np.sum(A1_mass * A1_value) / np.sum(A1_mass)
