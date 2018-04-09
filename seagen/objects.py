@@ -330,6 +330,7 @@ class GenShell(object):
 
 class GenSphereIC(object):
     """
+    Generate particle initial conditions with the SEA method and nested shells.
     """
     def __init__(
             self,
@@ -372,32 +373,273 @@ class GenSphereIC(object):
         self.A1_u_prof      = A1_u_prof
         self.A1_mat_prof    = A1_mat_prof
 
+        # Derived
+        self.num_r_prof = len(self.A1_r_prof)
+        self.A1_m_prof  = np.empty(self.num_r_prof)
+        # Values for each shell
+        A1_N_shell          = []
+        A1_m_shell          = []
+        A1_m_picle_shell    = []
+        A1_r_shell          = []
+        A1_rho_shell        = []
+        A1_h_shell          = []
+        A1_u_shell          = []
+        A1_mat_shell        = []
+        # All particle data
         self.A1_r       = []
-        self.A1_theta   = []
-        self.A1_phi     = []
         self.A1_h       = []
         self.A1_u       = []
         self.A1_mat     = []
+        self.A1_theta   = []
+        self.A1_phi     = []
 
-        # Calculate the enclosed mass profile
-        self.A1_m_enc_prof  = ...
+        # # Check profiles start from non-zero radius...
 
-        # Find any internal material boundaries
-        self.A1_r_bound = ...
+        # # Interpolate profiles if needed...
+
+        # Calculate the mass profile
+        self.get_mass_profile()
+        # Enclosed mass profile
+        self.A1_m_enc_prof  = np.cumsum(self.A1_m_prof)
+        self.m_tot          = self.A1_m_enc_prof[-1]
+
+        # Find the radii of all material boundaries (including the outer edge)
+        self.find_material_boundaries()
+
+
+        ## First make arrays of all shell properties:
+        ## radius, N_picle, rho, h, u, mat
+        ## Then generate the shells and particles from those arrays
+
 
         # First (innermost) layer
+        r_bound     = self.A1_r_bound[0]
+        idx_bound   = self.A1_idx_bound[0]
+
         # Vary the particle mass until a particle shell boundary coincides with
         # the profile boundary
+        self.m_picle    = self.m_picle_des
+        # Initialise
+        idx_shell_bound_prev    = idx_bound
+        idx_shell_bound_best_1  = 0
+        idx_shell_bound_best_2  = 0
+        # This also sets A1_idx_outer and A1_r_outer
+        while True:
+            # Find the outer boundary radii of all shells
+            A1_idx_outer    = []
+            A1_r_outer      = []
 
-        # Integrate and make shells...
-        ###wilo
+            # Set the core dr with the radius containing the mass of the central
+            # tetrahedron of 4 particles
+            N_picle_shell   = 4
+            idx_outer       = np.searchsorted(
+                self.A1_m_enc_prof, N_picle_shell * self.m_picle
+                )
+            r_outer         = self.A1_r_prof[idx_outer]
+            self.dr_core    = r_outer
+
+            # Mass-weighted mean density
+            self.rho_core   = get_mass_weighted_mean(
+                self.A1_m_prof[:idx_outer], self.A1_rho_prof[:idx_outer]
+                )
+
+            # Record shell boundary
+            A1_idx_outer.append(idx_outer)
+            A1_r_outer.append(self.dr_core)
+
+            while A1_r_outer[-1] < r_bound:
+                # Calculate the shell width from the density relative to the core
+                rho = self.A1_rho_prof(idx_r)
+                dr  = self.dr_core * np.cbrt(self.rho_core / rho)
+
+                # Find the profile radius just beyond this shell (r_outer + dr)
+                idx_outer   = np.searchsorted(
+                    self.A1_r_prof, r_outer + dr
+                    )
+                r_outer     = self.A1_r_prof[idx_outer]
+
+                A1_idx_outer.append(idx_outer)
+                A1_r_outer.append(r_outer)
+
+            # Reduce the particle mass until the shell boundary reaches the
+            # profile boundary
+#            idx_shell_bound = A1_idx_outer[-1]
+#            # Stop when either the boundary is perfect or has settled at the
+#            # same place after two reductions of the mass variation, dm_picle
+#            if (idx_shell_bound == idx_bound or
+#                (idx_shell_bound == idx_shell_bound_best_1 and
+#                 idx_shell_bound == idx_shell_bound_best_2)):
+#                break
+#            # If we've gone too far then go back and make smaller adjustments
+#            elif idx_shell_bound > idx_shell_bound_prev:
+#                self.m_picle    *= 1 + dm_picle
+#                dm_picle        /= 2
+#
+#                idx_shell_bound_best_2  = idx_shell_bound_best_1
+#                idx_shell_bound_best_1  = idx_shell_bound_prev
+#            # Decrease the particle mass and try again
+#            else:
+#                self.m_picle    *= 1 - dm_picle
+#
+#            idx_shell_bound_prev  = idx_shell_bound
+
+            break   ###
+
+        print("Input particle mass refined from %.3g to %.3g" % (
+            self.m_picle_des, self.m_picle
+            ))
+
+        # Set the mass-weighted values for each shell
+        idx_inner   = 0
+        for i_shell, idx_outer in enumerate(A1_idx_outer):
+            A1_m_prof_shell = self.A1_m_prof[idx_inner:idx_outer]
+
+            # Mass
+            A1_m_shell.append(np.sum(A1_m_prof_shell))
+            # Number of particles
+            if i_shell == 0:
+                A1_N_shell.append(4)
+            else:
+                A1_N_shell.append(int(round(A1_m_shell[-1] / self.m_picle)))
+            # Actual particle mass
+            A1_m_picle_shell.append(self.m_picle / A1_N_shell[-1])
+
+            # Radius (mean of mass-weighted and middle shell radii)
+            r_half  = (
+                self.A1_r_prof[idx_inner] + self.A1_r_prof[idx_outer]
+                ) / 2
+            r_mwm   = get_mass_weighted_mean(
+                A1_m_prof_shell, self.A1_r_prof[idx_inner:idx_outer]
+                )
+            A1_r_shell.append((r_half + r_mwm) / 2)
+
+            # Other properties
+            A1_rho_shell.append(get_mass_weighted_mean(
+                A1_m_prof_shell, self.A1_rho_prof[idx_inner:idx_outer]
+                ))
+            A1_u_shell.append(get_mass_weighted_mean(
+                A1_m_prof_shell, self.A1_u_prof[idx_inner:idx_outer]
+                ))
+            A1_mat_shell.append(get_mass_weighted_mean(
+                A1_m_prof_shell, self.A1_mat_prof[idx_inner:idx_outer]
+                ))
+
+            idx_inner   = idx_outer
+
+        # Estimate the smoothing lengths from the densities
+        num_ngb     = 50
+        kernel_edge = 2
+        A1_h_shell  = (3/(4*pi)*num_ngb * A1_m_shell / np.cbrt(A1_rho_shell)
+                       / kernel_edge)
+
+        print("N, r, h, u, mat")
+        # Generate the particles in each shell
+        for N, r, h, u, mat in zip(
+            A1_N_shell, A1_r_shell, A1_h_shell, A1_u_shell, A1_mat_shell
+            ):
+            generate_shell_particles(N, r, h, u, mat)
+
+            print(N, r, h, u, mat)
+
+        # Randomly rotate each shell
+        ...
 
         # Outer layer(s)
         # Vary the number of particles in the first shell of this layer until a
         # particle shell boundary coincides with the next profile boundary
+        ...
 
 
+    def get_shell_mass(r_inner, r_outer, rho):
+        """
+        Calculate the mass of a uniform-density shell.
+        """
+        return 4/3*np.pi * rho * (r_outer**3 - r_inner**3)
 
+    def get_mass_weighted_mean(A1_mass, A1_value):
+        """
+        Calculate the mean of the value array weighted by the mass array.
+        """
+        return np.sum(A1_mass * A1_value) / np.sum(A1_mass)
+
+    def get_mass_profile(self):
+        """
+        Calculate the mass profile from the density profile.
+        """
+        # Find the mass in each profile shell, starting with the central sphere
+        self.A1_m_prof      = np.empty(self.num_r_prof)
+        self.A1_m_prof[0]   = get_shell_mass(
+            0.0, self.A1_r_prof[0], self.A1_rho_prof[0]
+            )
+        self.A1_m_prof[1:]  = get_shell_mass(
+            self.A1_r_prof[:-1], self.A1_r_prof[1:], self.A1_rho_prof[1:]
+            )
+
+        return
+
+    def find_material_boundaries(self):
+        """
+        Find the radii of any layer boundaries (where the material changes),
+        including the outer edge.
+
+        Set A1_idx_bound and A1_r_bound.
+        """
+        A1_idx_bound    = np.where(np.diff(self.A1_mat_prof) == 1)[0]
+        # Include the outer edge
+        self.A1_idx_bound   = np.append(A1_idx_bound, self.num_r_prof)
+        self.A1_r_bound     = self.A1_r_prof[self.A1_idx_bound]
+
+        return
+
+    def generate_tetrahedron_particles(
+        self, r: float, h: float, u: float, mat: int
+        ):
+        """
+        Make a tetrahedron of 4 particles with the given properties.
+        """
+        # Tetrahedron vertex coordinates
+        A1_x        = np.array([1, 1, -1, -1])
+        A1_y        = np.array([1, -1, 1, -1])
+        A1_z        = np.array([1, -1, -1, 1])
+        A1_theta    = np.arccos(A1_z / np.sqrt(A1_x**2 + A1_y**2 + A1_z**2))
+        A1_phi      = np.arctan(A1_y / A1_x)
+
+        # Append the data to the arrays of all particles
+        self.A1_r.append([r] * N)
+        self.A1_h.append([h] * N)
+        self.A1_u.append([u] * N)
+        self.A1_mat.append([mat] * N)
+        self.A1_theta.append(A1_theta)
+        self.A1_phi.append(A1_phi)
+
+        return
+
+    def generate_shell_particles(
+        self, N: int, r: float, h: float, u: float, mat: int
+        ):
+        """
+        Make a single spherical shell of particles with the given properties.
+        """
+        # Make a tetrahedron for the central 4 particles
+        if N == 4:
+            generate_tetrahedron_particles(r, h, u, mat)
+
+            return
+
+        # Make an SEA shell otherwise
+        shell = GenShell(N, r)
+
+        # Append the data to the arrays of all particles
+        self.A1_r.append([r] * N)
+        self.A1_h.append([h] * N)
+        self.A1_u.append([u] * N)
+        self.A1_mat.append([mat] * N)
+        self.A1_theta.append(shell.theta)
+        self.A1_phi.append(shell.phi)
+
+        return
+
+    ...
 
     # # # # # # # # # #
 
