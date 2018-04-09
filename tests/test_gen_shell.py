@@ -1,8 +1,8 @@
 """
 Tests the generation of a single spherical shell of particles.
 """
-import sys
-sys.path.append("/media/jacob/Data/Dropbox/gihr/seagen")
+#import sys
+#sys.path.append("/media/jacob/Data/Dropbox/gihr/seagen")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,7 +25,7 @@ def test_gen_shell(N=100):
     elev    = 25                    # 3D viewpoint
     azim    = 0
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(7, 7))
     ax  = fig.add_subplot(1, 1, 1, aspect='equal', projection="3d")
 
     # Sphere (doesn't work)
@@ -68,7 +68,7 @@ def test_gen_shell(N=100):
         theta   = np.ones(100) * np.arccos(z_collars[i_col])
         x_lat, y_lat, z_lat = polar_to_cartesian(r, phi, theta)
 
-        plt.plot(x_lat, y_lat, z_lat, c=colour, alpha=0.5)
+        plt.plot(x_lat, y_lat, z_lat, c=colour, alpha=0.3)
 
     # Equator
     r       = np.ones(100)
@@ -95,8 +95,6 @@ def test_gen_shell(N=100):
     filename = "test_gen_shell.png"
     plt.savefig(filename)
     print("Saved figure to %s" % filename)
-
-    plt.show()
 
 if __name__ == "__main__":
     test_gen_shell()

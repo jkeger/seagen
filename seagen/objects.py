@@ -328,26 +328,38 @@ class GenShell(object):
         return
 
 
+def get_shell_mass(r_inner: float, r_outer: float, rho: float):
+    """
+    Calculate the mass of a uniform-density shell.
+    """
+    return 4/3*np.pi * rho * (r_outer**3 - r_inner**3)
+
+def get_mass_weighted_mean(A1_mass, A1_value):
+    """
+    Calculate the mean of the value array weighted by the mass array.
+    """
+    return np.sum(A1_mass * A1_value) / np.sum(A1_mass)
+
 class GenSphereIC(object):
     """
-    Generate particle initial conditions with the SEA method and nested shells.
+    Generate particle initial conditions with the SEA method and nested shells,
+    following a density profile.
     """
     def __init__(
             self,
-            m_picle_des: float,
+            N_picle_des: float,
             A1_r_prof: np.ndarray,
             A1_rho_prof: np.ndarray,
             A1_u_prof: np.ndarray,
             A1_mat_prof: np.ndarray
         ):
         """
-        Generates nested spherical shells of particles to match a radial
-        density profile.
+        Generates nested spherical shells of particles to match radial profiles.
 
         Inputs
         ------
 
-        @param m_picle_des | float | desired particle mass.
+        @param N_picle_des | float | desired number of particles.
 
         @param A1_r_prof | ndarray | an array of the profile radii for this
                                      layer.
@@ -364,18 +376,18 @@ class GenSphereIC(object):
         Outputs
         -------
 
-        GenLayer.r, GenLayer.theta, GenLayer.phi, GenLayer.m, GenLayer.h,
-        GenLayer.u, GenLayer.mat.
+        GenLayer.A1_r, GenLayer.A1_theta, GenLayer.A1_phi, GenLayer.A1_m, GenLayer.A1_h,
+        GenLayer.A1_u, GenLayer.A1_mat.
         """
-        self.m_picle_des    = m_picle_des
+        self.N_picle_des    = N_picle_des
         self.A1_r_prof      = A1_r_prof
         self.A1_rho_prof    = A1_rho_prof
         self.A1_u_prof      = A1_u_prof
         self.A1_mat_prof    = A1_mat_prof
 
         # Derived
-        self.num_r_prof = len(self.A1_r_prof)
-        self.A1_m_prof  = np.empty(self.num_r_prof)
+        self.N_prof = len(self.A1_r_prof)
+        self.A1_m_prof  = np.empty(self.N_prof)
         # Values for each shell
         A1_N_shell          = []
         A1_m_shell          = []
@@ -386,6 +398,7 @@ class GenSphereIC(object):
         A1_u_shell          = []
         A1_mat_shell        = []
         # All particle data
+        self.A1_m       = []
         self.A1_r       = []
         self.A1_h       = []
         self.A1_u       = []
@@ -402,15 +415,10 @@ class GenSphereIC(object):
         # Enclosed mass profile
         self.A1_m_enc_prof  = np.cumsum(self.A1_m_prof)
         self.m_tot          = self.A1_m_enc_prof[-1]
+        self.m_picle_des    = self.m_tot / self.N_picle_des
 
         # Find the radii of all material boundaries (including the outer edge)
         self.find_material_boundaries()
-
-
-        ## First make arrays of all shell properties:
-        ## radius, N_picle, rho, h, u, mat
-        ## Then generate the shells and particles from those arrays
-
 
         # First (innermost) layer
         r_bound     = self.A1_r_bound[0]
@@ -418,7 +426,8 @@ class GenSphereIC(object):
 
         # Vary the particle mass until a particle shell boundary coincides with
         # the profile boundary
-        self.m_picle    = self.m_picle_des
+        print("\nTweaking the particle mass to fix the boundaries...")
+        self.m_picle        = self.m_picle_des
         # Initialise
         idx_shell_bound_prev    = idx_bound
         idx_shell_bound_best_1  = 0
@@ -448,14 +457,15 @@ class GenSphereIC(object):
             A1_r_outer.append(self.dr_core)
 
             while A1_r_outer[-1] < r_bound:
-                # Calculate the shell width from the density relative to the core
-                rho = self.A1_rho_prof(idx_r)
+                # Calculate the shell width from the density relative to the
+                # core radius and density
+                rho = self.A1_rho_prof[idx_outer]
                 dr  = self.dr_core * np.cbrt(self.rho_core / rho)
 
                 # Find the profile radius just beyond this shell (r_outer + dr)
-                idx_outer   = np.searchsorted(
-                    self.A1_r_prof, r_outer + dr
-                    )
+                idx_outer   = np.searchsorted(self.A1_r_prof, r_outer + dr)
+                if idx_outer == self.N_prof:    ###
+                    idx_outer   -= 1
                 r_outer     = self.A1_r_prof[idx_outer]
 
                 A1_idx_outer.append(idx_outer)
@@ -463,6 +473,7 @@ class GenSphereIC(object):
 
             # Reduce the particle mass until the shell boundary reaches the
             # profile boundary
+            ...
 #            idx_shell_bound = A1_idx_outer[-1]
 #            # Stop when either the boundary is perfect or has settled at the
 #            # same place after two reductions of the mass variation, dm_picle
@@ -484,11 +495,15 @@ class GenSphereIC(object):
 #            idx_shell_bound_prev  = idx_shell_bound
 
             break   ###
-
-        print("Input particle mass refined from %.3g to %.3g" % (
+        print("Done particle mass tweaking! From %g to %g" % (
             self.m_picle_des, self.m_picle
             ))
 
+        print("\nDividing the profiles into shells...")
+        print("  with particle properties:")
+        header  = ("    Radius    Number   Mass      Density   Energy    "
+                   "Material")
+        print(header)
         # Set the mass-weighted values for each shell
         idx_inner   = 0
         for i_shell, idx_outer in enumerate(A1_idx_outer):
@@ -504,7 +519,7 @@ class GenSphereIC(object):
             # Actual particle mass
             A1_m_picle_shell.append(self.m_picle / A1_N_shell[-1])
 
-            # Radius (mean of mass-weighted and middle shell radii)
+            # Radius (mean of half-way and mass-weighted radii)
             r_half  = (
                 self.A1_r_prof[idx_inner] + self.A1_r_prof[idx_outer]
                 ) / 2
@@ -526,20 +541,40 @@ class GenSphereIC(object):
 
             idx_inner   = idx_outer
 
+            print("    %.2e  %07d  %.2e  %.2e  %.2e  %d" % (
+                A1_r_shell[-1], A1_N_shell[-1], A1_m_picle_shell[-1],
+                A1_rho_shell[-1], A1_u_shell[-1], A1_mat_shell[-1]
+                ))
+        print(header)
+        print("Shells done!")
+
         # Estimate the smoothing lengths from the densities
         num_ngb     = 50
         kernel_edge = 2
-        A1_h_shell  = (3/(4*pi)*num_ngb * A1_m_shell / np.cbrt(A1_rho_shell)
-                       / kernel_edge)
+        A1_h_shell  = (
+            3/(4*np.pi) * num_ngb * np.array(A1_m_shell) / np.cbrt(A1_rho_shell)
+            / kernel_edge
+            )
 
-        print("N, r, h, u, mat")
+#        # Print a table of the shells
+#        print("\nFilling the shells with particles...")
+#        header  = " r         N       m         h         u         mat"
+#        print(header)
+#        for N, r, m, h, u, mat in zip(
+#            A1_N_shell, A1_r_shell, A1_m_picle_shell, A1_h_shell, A1_u_shell,
+#            A1_mat_shell
+#            ):
+#            print(" %.2e  %06d  %.2e  %.2e  %.2e  %d" % (r, N, m, h, u, mat))
+#        print(header)
+
         # Generate the particles in each shell
-        for N, r, h, u, mat in zip(
-            A1_N_shell, A1_r_shell, A1_h_shell, A1_u_shell, A1_mat_shell
+        print("\nArranging the particles in each shell...")
+        for N, r, m, h, u, mat in zip(
+            A1_N_shell, A1_r_shell, A1_m_picle_shell, A1_h_shell, A1_u_shell,
+            A1_mat_shell
             ):
-            generate_shell_particles(N, r, h, u, mat)
-
-            print(N, r, h, u, mat)
+            self.generate_shell_particles(N, m, r, h, u, mat)
+        print("Particles done!")
 
         # Randomly rotate each shell
         ...
@@ -549,25 +584,12 @@ class GenSphereIC(object):
         # particle shell boundary coincides with the next profile boundary
         ...
 
-
-    def get_shell_mass(r_inner, r_outer, rho):
-        """
-        Calculate the mass of a uniform-density shell.
-        """
-        return 4/3*np.pi * rho * (r_outer**3 - r_inner**3)
-
-    def get_mass_weighted_mean(A1_mass, A1_value):
-        """
-        Calculate the mean of the value array weighted by the mass array.
-        """
-        return np.sum(A1_mass * A1_value) / np.sum(A1_mass)
-
     def get_mass_profile(self):
         """
         Calculate the mass profile from the density profile.
         """
         # Find the mass in each profile shell, starting with the central sphere
-        self.A1_m_prof      = np.empty(self.num_r_prof)
+        self.A1_m_prof      = np.empty(self.N_prof)
         self.A1_m_prof[0]   = get_shell_mass(
             0.0, self.A1_r_prof[0], self.A1_rho_prof[0]
             )
@@ -586,17 +608,19 @@ class GenSphereIC(object):
         """
         A1_idx_bound    = np.where(np.diff(self.A1_mat_prof) == 1)[0]
         # Include the outer edge
-        self.A1_idx_bound   = np.append(A1_idx_bound, self.num_r_prof)
+        self.A1_idx_bound   = np.append(A1_idx_bound, self.N_prof - 1)
         self.A1_r_bound     = self.A1_r_prof[self.A1_idx_bound]
 
         return
 
     def generate_tetrahedron_particles(
-        self, r: float, h: float, u: float, mat: int
+        self, r: float, m: float, h: float, u: float, mat: int
         ):
         """
         Make a tetrahedron of 4 particles with the given properties.
         """
+        N   = 4
+
         # Tetrahedron vertex coordinates
         A1_x        = np.array([1, 1, -1, -1])
         A1_y        = np.array([1, -1, 1, -1])
@@ -606,6 +630,7 @@ class GenSphereIC(object):
 
         # Append the data to the arrays of all particles
         self.A1_r.append([r] * N)
+        self.A1_m.append([m] * N)
         self.A1_h.append([h] * N)
         self.A1_u.append([u] * N)
         self.A1_mat.append([mat] * N)
@@ -615,22 +640,22 @@ class GenSphereIC(object):
         return
 
     def generate_shell_particles(
-        self, N: int, r: float, h: float, u: float, mat: int
+        self, N: int, r: float, m: float, h: float, u: float, mat: int
         ):
         """
         Make a single spherical shell of particles with the given properties.
         """
         # Make a tetrahedron for the central 4 particles
         if N == 4:
-            generate_tetrahedron_particles(r, h, u, mat)
+            self.generate_tetrahedron_particles(r, m, h, u, mat)
 
             return
-
         # Make an SEA shell otherwise
         shell = GenShell(N, r)
 
         # Append the data to the arrays of all particles
         self.A1_r.append([r] * N)
+        self.A1_m.append([m] * N)
         self.A1_h.append([h] * N)
         self.A1_u.append([u] * N)
         self.A1_mat.append([mat] * N)
@@ -639,359 +664,5 @@ class GenSphereIC(object):
 
         return
 
-    ...
-
-    # # # # # # # # # #
-
-        # Do processing
-        self.calculate_total_mass()
-        self.calculate_parts_in_shells()
-        self.create_all_shells()
-
-        # Turn our list of arrays into a single long array.
-        self.stack_arrays()
-
-
-    def make_single_shell(self, N: int, r_inner: float, dr: float):
-        """
-        Make a single spherical shell (i.e. one row of positions).
-        """
-        this_shell = GenShell(N=N, r_inner=r_inner, dr=dr)
-        this_shell.apply_stretch_factor()
-
-        self.r.append(this_shell.r)
-        self.theta.append(this_shell.theta)
-        self.phi.append(this_shell.phi)
-
-        return
-
-
-    def mass_in_profile_shell(self, r: float) -> float:
-        """
-        The mass in an infinitesimal shell at profile radius r.
-        (The density profile function multiplied by the jacobian.)
-        """
-
-        return 4 * np.pi * r * r * self.density(r)
-
-
-    def calculate_total_mass(self) -> float:
-        """
-        Calculate the total mass using the density callable.
-
-        Stores the total mass as self.total_mass.
-        """
-
-        m, _ = quad(self.mass_in_profile_shell, *self.r_range)
-
-        self.total_mass = m
-
-        return m
-
-
-    def make_central_tetra(self):
-        """
-        Sets the central tetrahedron paritcle positions, based on particle mass
-        and inner density.
-        Creates:
-            self.parts_in_shells
-            self.shell_widths
-            self.inner_radii.
-        """
-
-        inner_density = self.density(0)
-        volume = self.part_mass / inner_density
-
-        # We actually care about a _sphere_ that encloses the
-        # tetrahedrons rather than the volume of the tetra itself.
-        ## Need to find the radius that encloses 4*m_part for non-const density!
-        radius = np.cbrt(3 * volume / (4 * np.pi))
-
-        self.shell_widths = [radius]
-        self.parts_in_shells = [4]
-        self.inner_radii = [radius] ## Not zero?
-
-        # Get intial particle positions.
-
-        self.r.append([radius] * 4)
-        self.theta.append(
-            [2.186276, 0.955316, 0.955316, 2.186276]
-        )
-        self.phi.append(
-            [2*np.pi-2.356194, 2.356194, 2*np.pi-0.785398, 0.785398]
-        )
-
-        return
-
-
-    def calculate_parts_in_shells(self):
-        """
-        Calculate the (approximate) number of particles in each shell.
-
-        Stores the numbers as self.parts_in_shells, and the shell widths in
-        self.shell_widths. Stores inner radii as self.inner_radii.
-        """
-        n_parts = self.total_mass / self.part_mass
-
-        self.make_central_tetra()
-
-        prefactor = 4 * np.pi / 3
-
-        while (self.inner_radii[-1] + self.shell_widths[-1]) < self.r_range[1]:
-            dr_core = self.shell_widths[0]
-            radius_core = self.inner_radii[-1] + dr_core
-            self.inner_radii.append(radius_core)
-
-            tot_parts = sum(self.parts_in_shells)
-            density_core = self.part_mass * tot_parts / (prefactor * radius_core**3)
-            density = self.density(radius_core)
-
-            print(density, density_core)
-            dr = dr_core * np.cbrt(density_core / density)
-
-            ## Need to calculate the actual enclosed mass in the particle shell!
-            mass_in_profile_shell, _ = quad(
-                self.mass_in_profile_shell,
-                radius_core,
-                radius_core+dr
-            )
-            parts_in_shell = int(round(mass_in_profile_shell / self.part_mass))
-
-            self.shell_widths.append(dr)
-            self.parts_in_shells.append(parts_in_shell)
-
-#            print(f"dr: {dr}, parts: {parts_in_shell}, inner: {radius_core}")
-
-
-        return
-
-
-    def create_all_shells(self):
-        """
-        Create all shells! Essentially loops over all of the parameters.
-        """
-
-        n_shells = len(self.shell_widths)
-
-        for shell in tqdm(range(n_shells)):
-            self.make_single_shell(
-                N=self.parts_in_shells[shell],
-                r_inner=self.inner_radii[shell],
-                dr=self.shell_widths[shell]
-            )
-
-        return
-
-
-    def stack_arrays(self):
-        """
-        Stack the r, theta, phi lists into one long array for output.
-        """
-
-        self.r = np.hstack(self.r)
-        self.theta = np.hstack(self.theta)
-        self.phi = np.hstack(self.phi)
-
-        return
-
-
-
-
-
-# OLD
-class GenIC(object):
-    """
-    """
-    def __init__(
-            self,
-            density: Callable,
-            part_mass: float,
-            r_range: Tuple[float]
-        ):
-        """
-        Generates a whole set of particles to represent a filled-in sphere
-        by creating several GenShell objects.
-
-        Inputs
-        ------
-
-        @param density | callable | a function that describes density as a
-                                    function of radius. Should take a single
-                                    argument such that density = density(r).
-
-        @param part_mass | float | particle mass.
-
-        @param r_range | tuple[float] | a tuple describing the range of r
-                                        values to create particles over. At
-                                        the moment, the lower bound is ignored.
-
-
-        Outputs
-        -------
-
-        GenIC.r, GenIC.theta, GenIC.phi. Note that here:
-
-        + r = [0, inf)
-        + phi = [0, 2pi)
-        + theta = [0, pi]
-        """
-        self.density = density
-        self.part_mass = part_mass
-        self.r_range = r_range
-
-        self.r = []
-        self.theta = []
-        self.phi = []
-
-        # Do processing
-        self.calculate_total_mass()
-        self.calculate_parts_in_shells()
-        self.create_all_shells()
-
-        # Turn our list of arrays into a single long array.
-        self.stack_arrays()
-
-
-    def make_single_shell(self, N: int, r_inner: float, dr: float):
-        """
-        Make a single spherical shell (i.e. one row of positions).
-        """
-        this_shell = GenShell(N=N, r_inner=r_inner, dr=dr)
-        this_shell.apply_stretch_factor()
-
-        self.r.append(this_shell.r)
-        self.theta.append(this_shell.theta)
-        self.phi.append(this_shell.phi)
-
-        return
-
-
-    def mass_in_profile_shell(self, r: float) -> float:
-        """
-        The mass in an infinitesimal shell at profile radius r.
-        (The density profile function multiplied by the jacobian.)
-        """
-
-        return 4 * np.pi * r * r * self.density(r)
-
-
-    def calculate_total_mass(self) -> float:
-        """
-        Calculate the total mass using the density callable.
-
-        Stores the total mass as self.total_mass.
-        """
-
-        m, _ = quad(self.mass_in_profile_shell, *self.r_range)
-
-        self.total_mass = m
-
-        return m
-
-
-    def make_central_tetra(self):
-        """
-        Sets the central tetrahedron paritcle positions, based on particle mass
-        and inner density.
-        Creates:
-            self.parts_in_shells
-            self.shell_widths
-            self.inner_radii.
-        """
-
-        inner_density = self.density(0)
-        volume = self.part_mass / inner_density
-
-        # We actually care about a _sphere_ that encloses the
-        # tetrahedrons rather than the volume of the tetra itself.
-        ## Need to find the radius that encloses 4*m_part for non-const density!
-        radius = np.cbrt(3 * volume / (4 * np.pi))
-
-        self.shell_widths = [radius]
-        self.parts_in_shells = [4]
-        self.inner_radii = [radius] ## Not zero?
-
-        # Get intial particle positions.
-
-        self.r.append([radius] * 4)
-        self.theta.append(
-            [2.186276, 0.955316, 0.955316, 2.186276]
-        )
-        self.phi.append(
-            [2*np.pi-2.356194, 2.356194, 2*np.pi-0.785398, 0.785398]
-        )
-
-        return
-
-
-    def calculate_parts_in_shells(self):
-        """
-        Calculate the (approximate) number of particles in each shell.
-
-        Stores the numbers as self.parts_in_shells, and the shell widths in
-        self.shell_widths. Stores inner radii as self.inner_radii.
-        """
-        n_parts = self.total_mass / self.part_mass
-
-        self.make_central_tetra()
-
-        prefactor = 4 * np.pi / 3
-
-        while (self.inner_radii[-1] + self.shell_widths[-1]) < self.r_range[1]:
-            dr_core = self.shell_widths[0]
-            radius_core = self.inner_radii[-1] + dr_core
-            self.inner_radii.append(radius_core)
-
-            tot_parts = sum(self.parts_in_shells)
-            density_core = self.part_mass * tot_parts / (prefactor * radius_core**3)
-            density = self.density(radius_core)
-
-            print(density, density_core)
-            dr = dr_core * np.cbrt(density_core / density)
-
-            ## Need to calculate the actual enclosed mass in the particle shell!
-            mass_in_profile_shell, _ = quad(
-                self.mass_in_profile_shell,
-                radius_core,
-                radius_core+dr
-            )
-            parts_in_shell = int(round(mass_in_profile_shell / self.part_mass))
-
-            self.shell_widths.append(dr)
-            self.parts_in_shells.append(parts_in_shell)
-
-#            print(f"dr: {dr}, parts: {parts_in_shell}, inner: {radius_core}")
-
-
-        return
-
-
-    def create_all_shells(self):
-        """
-        Create all shells! Essentially loops over all of the parameters.
-        """
-
-        n_shells = len(self.shell_widths)
-
-        for shell in tqdm(range(n_shells)):
-            self.make_single_shell(
-                N=self.parts_in_shells[shell],
-                r_inner=self.inner_radii[shell],
-                dr=self.shell_widths[shell]
-            )
-
-        return
-
-
-    def stack_arrays(self):
-        """
-        Stack the r, theta, phi lists into one long array for output.
-        """
-
-        self.r = np.hstack(self.r)
-        self.theta = np.hstack(self.theta)
-        self.phi = np.hstack(self.phi)
-
-        return
 
 
