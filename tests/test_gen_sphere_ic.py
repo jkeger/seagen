@@ -2,8 +2,8 @@
 Tests the generation of spherical initial conditions following a density
 profile.
 """
-#import sys
-#sys.path.append("/media/jacob/Data/Dropbox/gihr/seagen")
+import sys
+sys.path.append("/media/jacob/Data/Dropbox/gihr/seagen")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ def test_gen_sphere_ic():
     Tests the generation of spherical initial conditions following a density
     profile.
     """
-    print("Testing sphere intiial conditions generation...")
+    print("Testing sphere initial conditions generation...")
 
     N_picle = 1e4
 
@@ -32,7 +32,7 @@ def test_gen_sphere_ic():
 
     # Generate particles
     particles   = GenSphereIC(
-        N_picle, A1_r_prof, A1_rho_prof, A1_u_prof, A1_mat_prof
+        N_picle, A1_r_prof, A1_rho_prof, A1_u_prof, A1_mat_prof, verb=2
         )
 
     # Figure

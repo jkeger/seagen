@@ -10,6 +10,9 @@ This file includes:
 
     + GenSphereIC, an object for generating spherical initial conditions of
       particles in nested shells.
+
+Notation:
+    Arrays of dimension * are explicitely labelled as "A*_name".
 """
 
 import numpy as np
@@ -377,7 +380,8 @@ class GenSphereIC(object):
             A1_r_prof: np.ndarray,
             A1_rho_prof: np.ndarray,
             A1_u_prof: np.ndarray,
-            A1_mat_prof: np.ndarray
+            A1_mat_prof: np.ndarray,
+            verb=1
         ):
         """
         Generate nested spherical shells of particles to match radial profiles.
@@ -399,14 +403,17 @@ class GenSphereIC(object):
         @param A1_mat_prof | ndarray | an array of material identifiers at the
                                        profile radii.
 
+        @param verb | (opt.) int | verbosity to control printed output:
+            0  :  Minimal
+            1  :  Standard (default)
+            2  :  Extra
+
         Outputs
         -------
 
         GenSphereIC.A1_r, .A1_x, .A1_y, .A1_z, .A1_m, .A1_rho, .A1_h, .A1_u,
             .A1_mat
         """
-        verbose = True
-
         self.N_picle_des    = N_picle_des
         self.A1_r_prof      = A1_r_prof
         self.A1_rho_prof    = A1_rho_prof
@@ -456,14 +463,25 @@ class GenSphereIC(object):
 
         # Vary the particle mass until a particle shell boundary coincides with
         # the profile boundary
-#        print("\nTweaking the particle mass to fix the boundaries...")
-        self.m_picle        = self.m_picle_des
+        if verb >= 1:
+            print("\nTweaking the particle mass to fix the boundaries...")
+        # Start at the maximum allowed particle mass then decrease to fit
+        self.m_picle    = self.m_picle_des * 1.02
+        dm_picle_init   = 1e-3
+        self.dm_picle   = dm_picle_init
         # Initialise
         idx_shell_bound_prev    = idx_bound
         idx_shell_bound_best_1  = 0
         idx_shell_bound_best_2  = 0
+        N_shell_init            = 0
+        if verb == 2:
+            print("  Particle mass   Relative tweak ", end='')
         # This also sets A1_idx_outer and A1_r_outer
         while True:
+            if verb == 2:
+                print("\n  %.5e     %.1e " % (
+                    self.m_picle, self.dm_picle
+                    ), end='', flush=True)
             # Find the outer boundary radii of all shells
             A1_idx_outer    = []
             A1_r_outer      = []
@@ -486,51 +504,61 @@ class GenSphereIC(object):
             A1_idx_outer.append(idx_outer)
             A1_r_outer.append(self.dr_core)
 
-            while A1_r_outer[-1] < r_bound:
-                # Calculate the shell width from the density relative to the
-                # core radius and density
+            # Find the shells that fit in this layer
+            N_shell = 0
+            while True:
+                # Calculate the shell width from the profile density relative to
+                # the core radius and density
                 rho = self.A1_rho_prof[idx_outer]
                 dr  = self.dr_core * np.cbrt(self.rho_core / rho)
 
                 # Find the profile radius just beyond this shell (r_outer + dr)
                 idx_outer   = np.searchsorted(self.A1_r_prof, r_outer + dr)
-                if idx_outer == self.N_prof:    ###
-                    idx_outer   -= 1
-                r_outer     = self.A1_r_prof[idx_outer]
+                try:
+                    r_outer = self.A1_r_prof[idx_outer]
+                # Hit outer edge, stop
+                except IndexError:
+                    break
 
+                # Record the shell
                 A1_idx_outer.append(idx_outer)
                 A1_r_outer.append(r_outer)
 
-            # Reduce the particle mass until the shell boundary reaches the
-            # profile boundary
-            ...
-#            idx_shell_bound = A1_idx_outer[-1]
-#            # Stop when either the boundary is perfect or has settled at the
-#            # same place after two reductions of the mass variation, dm_picle
-#            if (idx_shell_bound == idx_bound or
-#                (idx_shell_bound == idx_shell_bound_best_1 and
-#                 idx_shell_bound == idx_shell_bound_best_2)):
-#                break
-#            # If we've gone too far then go back and make smaller adjustments
-#            elif idx_shell_bound > idx_shell_bound_prev:
-#                self.m_picle    *= 1 + dm_picle
-#                dm_picle        /= 2
-#
-#                idx_shell_bound_best_2  = idx_shell_bound_best_1
-#                idx_shell_bound_best_1  = idx_shell_bound_prev
-#            # Decrease the particle mass and try again
-#            else:
-#                self.m_picle    *= 1 - dm_picle
-#
-#            idx_shell_bound_prev  = idx_shell_bound
+                N_shell += 1
 
-            break   ###
-#        print("Done particle mass tweaking! From %g to %g" % (
-#            self.m_picle_des, self.m_picle
-#            ))
+            # Number of shells for the starting particle mass
+            if N_shell_init == 0:
+                N_shell_init    = N_shell
 
-        if verbose:
+            # Want to reduce the particle mass until one more shell *just* fits
+
+            # Not got another shell yet, so reduce the mass
+            if N_shell == N_shell_init:
+                self.m_picle    *= 1 - self.dm_picle
+
+            # Got one more shell, but need it to *just* fit, so go back one step
+            # and retry with smaller mass changes (repeat this twice!)
+            elif self.dm_picle > dm_picle_init * 1e-2:
+                if verb == 2:
+                    print("  Reduce tweak", end='')
+                self.m_picle    *= 1 + self.dm_picle
+                self.dm_picle   *= 1e-1
+
+            # Got one more shell and refined the mass so it just fits, so done!
+            else:
+                if verb == 2:
+                    print()
+                break
+        if verb >= 1:
+            print("Done particle mass tweaking!")
+        if verb == 2:
+            print("  From %g to %g" % (
+                self.m_picle_des, self.m_picle
+                ))
+
+        if verb >= 1:
             print("\nDividing the profiles into shells...")
+        if verb == 2:
             print("  with particle properties:")
             header  = ("    Radius    Number   Mass      Density   Energy    "
                        "Material")
@@ -572,13 +600,14 @@ class GenSphereIC(object):
 
             idx_inner   = idx_outer
 
-            if verbose:
+            if verb == 2:
                 print("    %.2e  %07d  %.2e  %.2e  %.2e  %d" % (
                     A1_r_shell[-1], A1_N_shell[-1], A1_m_picle_shell[-1],
                     A1_rho_shell[-1], A1_u_shell[-1], A1_mat_shell[-1]
                     ))
-        if verbose:
+        if verb == 2:
             print(header)
+        if verb >= 1:
             print("Shells done!")
 
         # Estimate the smoothing lengths from the densities
@@ -590,7 +619,7 @@ class GenSphereIC(object):
             )
 
         # Generate the particles in each shell
-        if verbose:
+        if verb >= 1:
             print("\nArranging the particles in each shell...")
         for N, m, r, rho, h, u, mat in zip(
             A1_N_shell, A1_m_picle_shell, A1_r_shell, A1_rho_shell, A1_h_shell,
@@ -601,7 +630,7 @@ class GenSphereIC(object):
         # Flatten the particle arrays
         self.flatten_particle_arrays()
 
-        if verbose:
+        if verb >= 1:
             print("Particles done!")
 
         # Outer layer(s)
@@ -610,7 +639,7 @@ class GenSphereIC(object):
         ...
 
         self.N_picle    = len(self.A1_r)
-        if verbose:
+        if verb >= 1:
             print("\nFinal number of particles = %d" % self.N_picle)
 
     def get_mass_profile(self):
