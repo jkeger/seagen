@@ -16,6 +16,9 @@ deg_to_rad  = np.pi/180
 def test_gen_shell(N=100):
     """
     Test the generation of a single spherical shell of N particles.
+
+    Note: Matplotlib's 3D is not always great and sometimes some particles can
+        go invisible depending on the view angle!
     """
     print("Testing single shell generation with N = %d particles..." % N)
     particles   = GenShell(N, 1, do_stretch=True, do_rotate=False)
@@ -30,7 +33,7 @@ def test_gen_shell(N=100):
 
     # Dense longitude lines since plotting an actual sphere surface looks awful
     for phi in np.arange(0, 360, 1):
-        r       = np.ones(100) * 0.99
+        r       = np.ones(100)
         theta   = np.linspace(0, np.pi, 100)
         phi     = np.ones(100) * phi * deg_to_rad
         x, y, z = polar_to_cartesian(r, theta, phi)
@@ -88,4 +91,13 @@ def test_gen_shell(N=100):
 
 if __name__ == "__main__":
     test_gen_shell()
+
+
+
+
+
+
+
+
+
 

@@ -34,14 +34,36 @@ def test_gen_sphere_ic():
     particles   = GenSphereIC(
         N_picle, A1_r_prof, A1_rho_prof, A1_u_prof, A1_mat_prof
         )
-#    particles.r, particles.theta, particles.phi, particles.m, particles.h,
-#    particles.u, particles.mat.
 
-#    A1_x, A1_y, A1_z    = polar_to_cartesian(
-#        particles.A1_r, particles.A1_phi, particles.A1_theta
-#        )
+    # Figure
+    plt.figure(figsize=(7, 7))
+
+    plt.plot(A1_r_prof, A1_rho_prof)
+
+    plt.scatter(particles.A1_r, particles.A1_rho)
+
+    plt.xlabel("Radius")
+    plt.ylabel("Density")
+
+    plt.xlim(0, None)
+    plt.ylim(0, None)
+
+    plt.show()
 
 
 if __name__ == "__main__":
     test_gen_sphere_ic()
+
+
+
+
+
+
+
+
+
+
+
+
+
 

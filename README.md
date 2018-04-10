@@ -5,7 +5,7 @@ algorithm for generating spherically symmetric arrangements of particles for
 SPH initial conditions with accurate densities, as described by
 Kegerreis et al. (2018), *in prep*.
 
-Jacob Kegerreis, Josh Borrow
+Jacob Kegerreis and Josh Borrow
 
 jacob.kegerreis@durham.ac.uk
 
@@ -34,6 +34,8 @@ completed.
 + Fresh-start profile functions also need to have infrastructure for
   discontinuities and the necessary iterating of shell thicknesses to match the
   particle-shell and profile boundaries.
++ Basic full particle sphere generation now working! Only for a single layer and
+  no boundary matching so far.
 
 ## Contributing
 

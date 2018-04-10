@@ -66,7 +66,6 @@ class GenShell(object):
         theta: zenith (colatitude)
         phi: azimuth (longitude)
         """
-
         self.N = N
         self.r = r * np.ones(N)
 
@@ -79,7 +78,8 @@ class GenShell(object):
         self.get_point_positions()
         if do_stretch:
             self.apply_stretch_factor()
-        # Convert now to cartesian coordinates
+
+        # Now convert to cartesian coordinates
         self.x, self.y, self.z = polar_to_cartesian(
             self.r, self.theta, self.phi
             )
@@ -93,7 +93,6 @@ class GenShell(object):
 
         Equation 3.
         """
-
         return 2 * np.arcsin(np.sqrt(1 / self.N))
 
 
@@ -116,8 +115,8 @@ class GenShell(object):
         Gets the top theta of all of the collars, including the bottom cap's
         theta, and stores them in self.collars as well as returning them.
         """
-
         n_collars = self.get_number_of_collars()
+
         cap_height = self.get_cap_theta()
         height_of_collar = (np.pi - 2 * cap_height) / n_collars
 
@@ -127,6 +126,7 @@ class GenShell(object):
         self.collars *= height_of_collar
         # Starting at the bottom of the top polar cap
         self.collars += (cap_height)
+
         return self.collars
 
 
@@ -141,7 +141,6 @@ class GenShell(object):
 
         Equation 5.
         """
-
         sin2_theta_i = np.sin(theta_i / 2)**2
         sin2_theta_i_m_o = np.sin(theta_i_minus_one / 2)**2
 
@@ -152,7 +151,6 @@ class GenShell(object):
         """
         Gets the collar areas and stores them in self.collar_areas.
         """
-
         collar_thetas = self.get_collar_thetas()
 
         self.collar_areas = np.empty(self.N_col)
@@ -171,7 +169,6 @@ class GenShell(object):
 
         Equation 7.
         """
-
         return A_col / self.A_reg
 
 
@@ -183,9 +180,6 @@ class GenShell(object):
 
         Equation 8,9.
         """
-
-        # Because of the discrepancy counter, we will just use a regular loop.
-
         n_regions_in_collars = np.empty(self.N_col, dtype=int)
         collar_areas = self.get_collar_areas()
 
@@ -199,7 +193,7 @@ class GenShell(object):
             ideal_n_reg = self.get_ideal_n_regions_in_collar(collar_areas[i])
             N_i[...] = int(round(ideal_n_reg + discrepancy))
 
-            discrepancy = N_i - ideal_n_reg
+            discrepancy += ideal_n_reg - N_i
 
         self.n_regions_in_collars = n_regions_in_collars
 
@@ -215,7 +209,6 @@ class GenShell(object):
 
         Equation 10.
         """
-
         # First we must get the cumulative number of regions in each collar,
         # including the top polar cap
         n_regions_cum = np.cumsum(self.get_n_regions_in_collars()) + 1
@@ -239,7 +232,6 @@ class GenShell(object):
 
         Paragraph following Equation 12.
         """
-
         N_i_even = abs((N_i % 2) - 1)
         N_i_minus_one_even = abs((N_i_minus_one % 2) - 1)
 
@@ -253,24 +245,22 @@ class GenShell(object):
 
     def get_point_positions(self) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Sets the point positions (theta and phi) using the above-calculated
-        data.
+        Sets the point positions in the centres of every region.
 
         Stores in self.theta, self.phi and also returns them.
 
         Equation 11,12.
         """
+        N_tot   = self.n_regions_in_collars.sum() + 2
 
-        total_number_of_particles = self.n_regions_in_collars.sum() + 2
-
-        self.theta = np.empty(total_number_of_particles)
-        self.phi = np.empty(total_number_of_particles)
+        self.theta  = np.empty(N_tot)
+        self.phi    = np.empty(N_tot)
 
         # The cap particles are at the poles, listed at the end of these arrays.
-        self.theta[-2] = 0.0
-        self.theta[-1] = np.pi
-        self.phi[-2] = 0.0
-        self.phi[-1] = 0.0
+        self.theta[-2]  = 0.0
+        self.theta[-1]  = np.pi
+        self.phi[-2]    = 0.0
+        self.phi[-1]    = 0.0
 
         # All regions in a collar are at the same colatitude, theta.
         theta = np.zeros(self.N_col + 2)
@@ -336,7 +326,6 @@ class GenShell(object):
 
         Equation 13.
         """
-
         pi_over_2 = np.pi / 2
         inv_sqrtN = 1 / np.sqrt(self.N)
 
@@ -413,7 +402,7 @@ class GenSphereIC(object):
         Outputs
         -------
 
-        GenSphereIC.A1_r, .A1_theta, .A1_phi, .A1_m, .A1_rho, .A1_h, .A1_u,
+        GenSphereIC.A1_r, .A1_x, .A1_y, .A1_z, .A1_m, .A1_rho, .A1_h, .A1_u,
             .A1_mat
         """
         verbose = True
@@ -437,14 +426,15 @@ class GenSphereIC(object):
         A1_u_shell          = []
         A1_mat_shell        = []
         # All particle data
-        self.A1_m       = []
-        self.A1_r       = []
-        self.A1_rho     = []
-        self.A1_h       = []
-        self.A1_u       = []
-        self.A1_mat     = []
-        self.A1_theta   = []
-        self.A1_phi     = []
+        self.A1_m   = []
+        self.A1_r   = []
+        self.A1_rho = []
+        self.A1_h   = []
+        self.A1_u   = []
+        self.A1_mat = []
+        self.A1_x   = []
+        self.A1_y   = []
+        self.A1_z   = []
 
         # # Check profiles start from non-zero radius...
 
@@ -591,8 +581,6 @@ class GenSphereIC(object):
             print(header)
             print("Shells done!")
 
-        print("\n # A1_N_shell \n", A1_N_shell) ###
-
         # Estimate the smoothing lengths from the densities
         num_ngb     = 50
         kernel_edge = 2
@@ -609,11 +597,12 @@ class GenSphereIC(object):
             A1_u_shell, A1_mat_shell
             ):
             self.generate_shell_particles(N, m, r, rho, h, u, mat)
+
+        # Flatten the particle arrays
+        self.flatten_particle_arrays()
+
         if verbose:
             print("Particles done!")
-
-        # Randomly rotate each shell
-        ...
 
         # Outer layer(s)
         # Vary the number of particles in the first shell of this layer until a
@@ -653,32 +642,19 @@ class GenSphereIC(object):
 
         return
 
-    def generate_tetrahedron_particles(
-        self, m: float, r: float, rho: float, h: float, u: float, mat: int
-        ):
+    def get_tetrahedron_points(self, r: float):
         """
-        Make a tetrahedron of 4 particles with the given properties.
+        Return the positions of particles at the vertices of a tetrahedron with
+        radius r.
         """
-        N   = 4
-
+        # Radius scale
+        r_scale = r / np.cbrt(3)
         # Tetrahedron vertex coordinates
-        A1_x        = np.array([1, 1, -1, -1])
-        A1_y        = np.array([1, -1, 1, -1])
-        A1_z        = np.array([1, -1, -1, 1])
-        A1_theta    = np.arccos(A1_z / np.sqrt(A1_x**2 + A1_y**2 + A1_z**2))
-        A1_phi      = np.arctan(A1_y / A1_x)
+        A1_x    = np.array([1, 1, -1, -1]) * r_scale
+        A1_y    = np.array([1, -1, 1, -1]) * r_scale
+        A1_z    = np.array([1, -1, -1, 1]) * r_scale
 
-        # Append the data to the arrays of all particles
-        self.A1_m.append([m] * N)
-        self.A1_r.append([r] * N)
-        self.A1_rho.append([rho] * N)
-        self.A1_h.append([h] * N)
-        self.A1_u.append([u] * N)
-        self.A1_mat.append([mat] * N)
-        self.A1_theta.append(A1_theta)
-        self.A1_phi.append(A1_phi)
-
-        return
+        return A1_x, A1_y, A1_z
 
     def generate_shell_particles(
         self, N: int, m: float, r: float, rho: float, h: float, u: float,
@@ -687,25 +663,48 @@ class GenSphereIC(object):
         """
         Make a single spherical shell of particles with the given properties.
         """
-        # Make a tetrahedron for the central 4 particles
-        if N == 4:
-            self.generate_tetrahedron_particles(m, r, rho, h, u, mat)
-
-            return
-        # Make an SEA shell otherwise
-        shell = GenShell(N, r)
-
-        # Append the data to the arrays of all particles
+        # Append the data to the all-particle arrays
         self.A1_m.append([m] * N)
         self.A1_r.append([r] * N)
         self.A1_rho.append([rho] * N)
         self.A1_h.append([h] * N)
         self.A1_u.append([u] * N)
         self.A1_mat.append([mat] * N)
-        self.A1_theta.append(shell.theta)
-        self.A1_phi.append(shell.phi)
+
+        # Make a tetrahedron for the central 4 particles
+        if N == 4:
+            A1_x, A1_y, A1_z    = self.get_tetrahedron_points(r)
+            self.A1_x.append(A1_x)
+            self.A1_y.append(A1_y)
+            self.A1_z.append(A1_z)
+        # Make an SEA shell otherwise
+        else:
+            shell = GenShell(N, r)
+            self.A1_x.append(shell.x)
+            self.A1_y.append(shell.y)
+            self.A1_z.append(shell.z)
 
         return
+
+    def flatten_particle_arrays(self):
+        """
+        Flatten the particle data arrays for output.
+        """
+        for array in ["r", "x", "y", "z", "m", "rho", "h", "u", "mat",]:
+            exec("self.A1_%s = np.hstack(self.A1_%s)" % (array, array))
+
+        return
+
+
+
+
+
+
+
+
+
+
+
 
 
 
