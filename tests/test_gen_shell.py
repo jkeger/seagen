@@ -18,7 +18,7 @@ def test_gen_shell(N=100):
     Test the generation of a single spherical shell of N particles.
     """
     print("Testing single shell generation with N = %d particles..." % N)
-    shell = GenShell(N, 1)
+    particles   = GenShell(N, 1, do_stretch=True, do_rotate=False)
 
     # Figure
     ax_lim  = 1                     # axis limits (in +/- x, y, z)
@@ -28,53 +28,41 @@ def test_gen_shell(N=100):
     fig = plt.figure(figsize=(7, 7))
     ax  = fig.add_subplot(1, 1, 1, aspect='equal', projection="3d")
 
-    # Sphere (doesn't work)
-    if not True:
-        r           = 0.97 * np.ones((100, 100))
-        theta, phi  = np.mgrid[0:np.pi:100j, 0:2*np.pi:100j]
-        x, y, z     = polar_to_cartesian(r, phi, theta)
-
-        ax.plot_surface(
-            x, y, z, rstride=1, cstride=1, color='grey', linewidth=0
-            )
-
-    # Dense longitude lines since plotting an actual sphere surface doesn't work
+    # Dense longitude lines since plotting an actual sphere surface looks awful
     for phi in np.arange(0, 360, 1):
         r       = np.ones(100) * 0.99
-        phi     = np.ones(100) * phi * deg_to_rad
         theta   = np.linspace(0, np.pi, 100)
-        x, y, z = polar_to_cartesian(r, phi, theta)
+        phi     = np.ones(100) * phi * deg_to_rad
+        x, y, z = polar_to_cartesian(r, theta, phi)
         plt.plot(x, y, z, c='0.8')
 
-    # Particles
-    x, y, z = polar_to_cartesian(shell.r, shell.phi, shell.theta)
-
-    # Plot each collar with alternating particle colours
-    z_collars   = np.unique(z)
+    # Plot particles with alternating collar colours
+    z_collars   = np.unique(particles.z)
     for i_col in range(len(z_collars)):
-        sel_col = np.where(abs(z - z_collars[i_col]) < 0.001)[0]
+        sel_col = np.where(abs(particles.z - z_collars[i_col]) < 0.001)[0]
         if i_col%2 == 0:
             colour  = 'dodgerblue'
         else:
             colour  = 'blueviolet'
 
         ax.scatter(
-            x[sel_col], y[sel_col], z[sel_col], c=colour, marker='o', s=100
+            particles.x[sel_col], particles.y[sel_col], particles.z[sel_col],
+            c=colour, marker='o', s=100
             )
 
         # Latitude lines
         r       = np.ones(100)
-        phi     = np.linspace(0, 2*np.pi, 100)
         theta   = np.ones(100) * np.arccos(z_collars[i_col])
-        x_lat, y_lat, z_lat = polar_to_cartesian(r, phi, theta)
+        phi     = np.linspace(0, 2*np.pi, 101)[:-1]
+        x_lat, y_lat, z_lat = polar_to_cartesian(r, theta, phi)
 
-        plt.plot(x_lat, y_lat, z_lat, c=colour, alpha=0.3)
+        plt.plot(x_lat, y_lat, z_lat, c=colour, alpha=0.2)
 
     # Equator
     r       = np.ones(100)
-    phi     = np.linspace(0, 2*np.pi, 100)
     theta   = np.ones(100) * 90 * deg_to_rad
-    x, y, z = polar_to_cartesian(r, phi, theta)
+    phi     = np.linspace(0, 2*np.pi, 101)[:-1]
+    x, y, z = polar_to_cartesian(r, theta, phi)
     plt.plot(x, y, z, c='k', ls='--', alpha=0.3)
 
     # z axis
@@ -95,6 +83,8 @@ def test_gen_shell(N=100):
     filename = "test_gen_shell.png"
     plt.savefig(filename)
     print("Saved figure to %s" % filename)
+
+    plt.show()
 
 if __name__ == "__main__":
     test_gen_shell()

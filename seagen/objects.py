@@ -5,8 +5,11 @@ Created by: Jacob Kegerreis and Josh Borrow
 
 This file includes:
 
-    + GenShell, an object for generating individual spheres of particles
-      using the SEA method
+    + GenShell, an object for generating individual spherical shells of
+      particles using the SEA method.
+
+    + GenSphereIC, an object for generating spherical initial conditions of
+      particles in nested shells.
 """
 
 import numpy as np
@@ -14,6 +17,9 @@ import numpy as np
 from typing import Tuple, Callable
 from warnings import warn
 from scipy.integrate import quad
+
+from seagen.helper import polar_to_cartesian, get_euler_rotation_matrix, \
+    get_shell_mass, get_mass_weighted_mean
 
 try:
     from tqdm import tqdm
@@ -27,14 +33,17 @@ class GenShell(object):
     Generate a single spherical shell of particles at a fixed radius, using the
     SEA method.
     """
-    def __init__(self, N: int, r: float, do_stretch=True):
+    def __init__(self, N: int, r: float, do_stretch=True, do_rotate=True):
         """
-        Generates a single spherical shell.
+        Generates a single spherical shell of particles.
 
         Access the particle positions with:
-            GenShell.r
-            GenShell.theta
-            GenShell.phi.
+            GenShell.x
+            GenShell.y
+            GenShell.z
+
+        (Spherical polar coordinates are used internally but do not have the
+        final rotation applied to them.)
 
 
         Inputs
@@ -45,7 +54,17 @@ class GenShell(object):
         @param r | float | the radius of the shell.
 
         @param do_stretch | (opt.) bool | set False to not do the SEA method's
-            latitude stretching.
+            latitude stretching (default: True).
+
+        @param do_stretch | (opt.) bool | set True to randomly rotate the
+            sphere of particles after their intial placement (default: True).
+
+
+        Notation
+        ------
+
+        theta: zenith (colatitude)
+        phi: azimuth (longitude)
         """
 
         self.N = N
@@ -54,11 +73,18 @@ class GenShell(object):
         # Derived properties
         self.A_reg = 4 * np.pi / N
 
+        # Start in spherical polar coordinates
         self.get_collar_areas()
         self.update_collar_thetas()
         self.get_point_positions()
         if do_stretch:
             self.apply_stretch_factor()
+        # Convert now to cartesian coordinates
+        self.x, self.y, self.z = polar_to_cartesian(
+            self.r, self.theta, self.phi
+            )
+        if do_rotate:
+            self.apply_random_rotation()
 
 
     def get_cap_theta(self) -> float:
@@ -328,17 +354,28 @@ class GenShell(object):
         return
 
 
-def get_shell_mass(r_inner: float, r_outer: float, rho: float):
-    """
-    Calculate the mass of a uniform-density shell.
-    """
-    return 4/3*np.pi * rho * (r_outer**3 - r_inner**3)
+    def apply_random_rotation(self):
+        """
+        Rotate the shell with three random Euler angles.
+        """
+        # Random Euler angles
+        alpha   = np.random.rand() * 2*np.pi
+        beta    = np.random.rand() * 2*np.pi
+        gamma   = np.random.rand() * 2*np.pi
+        A2_rot  = get_euler_rotation_matrix(alpha, beta, gamma)
 
-def get_mass_weighted_mean(A1_mass, A1_value):
-    """
-    Calculate the mean of the value array weighted by the mass array.
-    """
-    return np.sum(A1_mass * A1_value) / np.sum(A1_mass)
+        # Array of position vectors
+        A2_pos  = np.array([self.x, self.y, self.z]).transpose()
+
+        # Rotate each position vector
+        for i in range(len(A2_pos)):
+            A2_pos[i]   = np.dot(A2_rot, A2_pos[i])
+
+        # Unpack positions
+        self.x, self.y, self.z  = A2_pos.transpose()
+
+        return
+
 
 class GenSphereIC(object):
     """
@@ -354,7 +391,7 @@ class GenSphereIC(object):
             A1_mat_prof: np.ndarray
         ):
         """
-        Generates nested spherical shells of particles to match radial profiles.
+        Generate nested spherical shells of particles to match radial profiles.
 
         Inputs
         ------
@@ -376,18 +413,20 @@ class GenSphereIC(object):
         Outputs
         -------
 
-        GenLayer.A1_r, GenLayer.A1_theta, GenLayer.A1_phi, GenLayer.A1_m, GenLayer.A1_h,
-        GenLayer.A1_u, GenLayer.A1_mat.
+        GenSphereIC.A1_r, .A1_theta, .A1_phi, .A1_m, .A1_rho, .A1_h, .A1_u,
+            .A1_mat
         """
+        verbose = True
+
         self.N_picle_des    = N_picle_des
         self.A1_r_prof      = A1_r_prof
         self.A1_rho_prof    = A1_rho_prof
         self.A1_u_prof      = A1_u_prof
         self.A1_mat_prof    = A1_mat_prof
 
-        # Derived
-        self.N_prof = len(self.A1_r_prof)
+        self.N_prof     = len(self.A1_r_prof)
         self.A1_m_prof  = np.empty(self.N_prof)
+
         # Values for each shell
         A1_N_shell          = []
         A1_m_shell          = []
@@ -400,6 +439,7 @@ class GenSphereIC(object):
         # All particle data
         self.A1_m       = []
         self.A1_r       = []
+        self.A1_rho     = []
         self.A1_h       = []
         self.A1_u       = []
         self.A1_mat     = []
@@ -426,7 +466,7 @@ class GenSphereIC(object):
 
         # Vary the particle mass until a particle shell boundary coincides with
         # the profile boundary
-        print("\nTweaking the particle mass to fix the boundaries...")
+#        print("\nTweaking the particle mass to fix the boundaries...")
         self.m_picle        = self.m_picle_des
         # Initialise
         idx_shell_bound_prev    = idx_bound
@@ -495,15 +535,16 @@ class GenSphereIC(object):
 #            idx_shell_bound_prev  = idx_shell_bound
 
             break   ###
-        print("Done particle mass tweaking! From %g to %g" % (
-            self.m_picle_des, self.m_picle
-            ))
+#        print("Done particle mass tweaking! From %g to %g" % (
+#            self.m_picle_des, self.m_picle
+#            ))
 
-        print("\nDividing the profiles into shells...")
-        print("  with particle properties:")
-        header  = ("    Radius    Number   Mass      Density   Energy    "
-                   "Material")
-        print(header)
+        if verbose:
+            print("\nDividing the profiles into shells...")
+            print("  with particle properties:")
+            header  = ("    Radius    Number   Mass      Density   Energy    "
+                       "Material")
+            print(header)
         # Set the mass-weighted values for each shell
         idx_inner   = 0
         for i_shell, idx_outer in enumerate(A1_idx_outer):
@@ -541,12 +582,16 @@ class GenSphereIC(object):
 
             idx_inner   = idx_outer
 
-            print("    %.2e  %07d  %.2e  %.2e  %.2e  %d" % (
-                A1_r_shell[-1], A1_N_shell[-1], A1_m_picle_shell[-1],
-                A1_rho_shell[-1], A1_u_shell[-1], A1_mat_shell[-1]
-                ))
-        print(header)
-        print("Shells done!")
+            if verbose:
+                print("    %.2e  %07d  %.2e  %.2e  %.2e  %d" % (
+                    A1_r_shell[-1], A1_N_shell[-1], A1_m_picle_shell[-1],
+                    A1_rho_shell[-1], A1_u_shell[-1], A1_mat_shell[-1]
+                    ))
+        if verbose:
+            print(header)
+            print("Shells done!")
+
+        print("\n # A1_N_shell \n", A1_N_shell) ###
 
         # Estimate the smoothing lengths from the densities
         num_ngb     = 50
@@ -556,25 +601,16 @@ class GenSphereIC(object):
             / kernel_edge
             )
 
-#        # Print a table of the shells
-#        print("\nFilling the shells with particles...")
-#        header  = " r         N       m         h         u         mat"
-#        print(header)
-#        for N, r, m, h, u, mat in zip(
-#            A1_N_shell, A1_r_shell, A1_m_picle_shell, A1_h_shell, A1_u_shell,
-#            A1_mat_shell
-#            ):
-#            print(" %.2e  %06d  %.2e  %.2e  %.2e  %d" % (r, N, m, h, u, mat))
-#        print(header)
-
         # Generate the particles in each shell
-        print("\nArranging the particles in each shell...")
-        for N, r, m, h, u, mat in zip(
-            A1_N_shell, A1_r_shell, A1_m_picle_shell, A1_h_shell, A1_u_shell,
-            A1_mat_shell
+        if verbose:
+            print("\nArranging the particles in each shell...")
+        for N, m, r, rho, h, u, mat in zip(
+            A1_N_shell, A1_m_picle_shell, A1_r_shell, A1_rho_shell, A1_h_shell,
+            A1_u_shell, A1_mat_shell
             ):
-            self.generate_shell_particles(N, m, r, h, u, mat)
-        print("Particles done!")
+            self.generate_shell_particles(N, m, r, rho, h, u, mat)
+        if verbose:
+            print("Particles done!")
 
         # Randomly rotate each shell
         ...
@@ -583,6 +619,10 @@ class GenSphereIC(object):
         # Vary the number of particles in the first shell of this layer until a
         # particle shell boundary coincides with the next profile boundary
         ...
+
+        self.N_picle    = len(self.A1_r)
+        if verbose:
+            print("\nFinal number of particles = %d" % self.N_picle)
 
     def get_mass_profile(self):
         """
@@ -614,7 +654,7 @@ class GenSphereIC(object):
         return
 
     def generate_tetrahedron_particles(
-        self, r: float, m: float, h: float, u: float, mat: int
+        self, m: float, r: float, rho: float, h: float, u: float, mat: int
         ):
         """
         Make a tetrahedron of 4 particles with the given properties.
@@ -629,8 +669,9 @@ class GenSphereIC(object):
         A1_phi      = np.arctan(A1_y / A1_x)
 
         # Append the data to the arrays of all particles
-        self.A1_r.append([r] * N)
         self.A1_m.append([m] * N)
+        self.A1_r.append([r] * N)
+        self.A1_rho.append([rho] * N)
         self.A1_h.append([h] * N)
         self.A1_u.append([u] * N)
         self.A1_mat.append([mat] * N)
@@ -640,22 +681,24 @@ class GenSphereIC(object):
         return
 
     def generate_shell_particles(
-        self, N: int, r: float, m: float, h: float, u: float, mat: int
+        self, N: int, m: float, r: float, rho: float, h: float, u: float,
+        mat: int
         ):
         """
         Make a single spherical shell of particles with the given properties.
         """
         # Make a tetrahedron for the central 4 particles
         if N == 4:
-            self.generate_tetrahedron_particles(r, m, h, u, mat)
+            self.generate_tetrahedron_particles(m, r, rho, h, u, mat)
 
             return
         # Make an SEA shell otherwise
         shell = GenShell(N, r)
 
         # Append the data to the arrays of all particles
-        self.A1_r.append([r] * N)
         self.A1_m.append([m] * N)
+        self.A1_r.append([r] * N)
+        self.A1_rho.append([rho] * N)
         self.A1_h.append([h] * N)
         self.A1_u.append([u] * N)
         self.A1_mat.append([mat] * N)
