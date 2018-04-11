@@ -2,8 +2,8 @@
 
 A work-in-progress python implementation of the stretched-equal-area (SEA)
 algorithm for generating spherically symmetric arrangements of particles for
-SPH initial conditions with accurate densities, as described by
-Kegerreis et al. (2018), *in prep*.
+SPH initial conditions (or any particle distributions) with accurate densities,
+as presented in Kegerreis et al. (2018), *in prep*.
 
 Jacob Kegerreis and Josh Borrow
 
@@ -20,22 +20,12 @@ completed.
 
 ## Current Status
 
-+ Fresh start: Keeping initial implementation of the single-shell generation
-  from jborrow with just a few checks and tweaks to do, but, for simplicity,
-  restart from scratch with the full-nested-shells generation for easier
-  compatability with arbitrary density profiles and the inclusion of other
-  profile properties.
-+ Similar re-making needed of test codes and examples.
-+ Documentation will obviously need revising too.
-
-### Update:
-
-+ Single shell generation now fixed!
-+ Fresh-start profile functions also need to have infrastructure for
-  discontinuities and the necessary iterating of shell thicknesses to match the
-  particle-shell and profile boundaries.
-+ Basic full particle sphere generation now working! Only for a single layer and
-  no boundary matching so far.
++ All basic functionality now implemeneted. i.e. generating single shells and
+  nested shells to build a sphere, following a density profile that can include
+  multiple layers.
++ Significant minor features still needed, especially regarding user input and
+  options control.
++ Lots of code tidying and documentation updating to do!
 
 ## Contributing
 
