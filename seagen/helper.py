@@ -14,7 +14,9 @@ class InvalidCoordinate(Exception):
 
 
 def check_valid_polar(
-    r: np.ndarray, theta: np.ndarray, phi: np.ndarray
+        r: np.ndarray,
+        theta: np.ndarray,
+        phi: np.ndarray
     ) -> bool:
     """
     Check if these are valid polar co-ordinates; i.e.
@@ -57,7 +59,7 @@ def polar_to_cartesian(
     phi: azimuth (longitude)
     """
 
-    if True:#check_valid_polar(r, theta, phi):
+    if check_valid_polar(r, theta, phi):
         x = r * np.cos(phi) * np.sin(theta)
         y = r * np.sin(phi) * np.sin(theta)
         z = r * np.cos(theta)
@@ -68,9 +70,14 @@ def polar_to_cartesian(
         return None, None, None
 
 
-def get_euler_rotation_matrix(alpha, beta, gamma):
+def get_euler_rotation_matrix(
+        alpha: float,
+        beta: float,
+        gamma: float
+    ) -> np.ndarray:
     """
-    Return the rotation matrix for three Euler angles.
+    Return the rotation matrix for three Euler angles, alpha, beta, and
+    gamma. Returns a 3x3 matrix as a np.ndarray.
     """
     sa = np.sin(alpha)
     ca = np.cos(alpha)
@@ -80,10 +87,10 @@ def get_euler_rotation_matrix(alpha, beta, gamma):
     cg = np.cos(gamma)
 
     return np.array([
-        [cg*cb*ca - sg*sa,      cg*cb*sa + sg*ca,       -cg*sb],
-        [-sg*cb*ca - cg*sa,     -sg*cb*sa + cg*ca,      sg*sb],
-        [sb*ca,                 sb*sa,                  cb]
-        ])
+        [cg*cb*ca - sg*sa,    cg*cb*sa + sg*ca, -cg*sb],
+        [-sg*cb*ca - cg*sa,  -sg*cb*sa + cg*ca,  sg*sb],
+        [      sb*ca,             sb*sa,           cb ]
+    ])
 
 
 def get_shell_mass(r_inner: float, r_outer: float, rho: float) -> float:
@@ -93,9 +100,12 @@ def get_shell_mass(r_inner: float, r_outer: float, rho: float) -> float:
     return 4/3*np.pi * rho * (r_outer**3 - r_inner**3)
 
 
-def get_mass_weighted_mean(A1_mass: np.ndarray, A1_value: np.ndarray) -> float:
+def get_mass_weighted_mean(A1_mass: float, A1_value: float) -> float:
     """
     Calculate the mean of the value array weighted by the mass array.
+
+    @jacob -- is this actually a mean? At the moment this is just a 
+    weighted sum.
     """
     return np.sum(A1_mass * A1_value) / np.sum(A1_mass)
 
