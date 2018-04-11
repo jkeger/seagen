@@ -14,6 +14,7 @@ from seagen.helper import polar_to_cartesian
 
 deg_to_rad  = np.pi/180
 
+
 def test_gen_sphere_ic_simple():
     """
     Tests the generation of spherical initial conditions following a simple
@@ -50,7 +51,16 @@ def test_gen_sphere_ic_simple():
     plt.xlim(0, None)
     plt.ylim(0, None)
 
+    plt.title("Test Sphere Initial Conditions (Simple)")
+
+    plt.tight_layout()
+
+    filename = "test_gen_sphere_ic_simple.png"
+    plt.savefig(filename)
+    print("Saved figure to %s" % filename)
+
     plt.show()
+
 
 def test_gen_sphere_ic_layers():
     """
@@ -68,24 +78,17 @@ def test_gen_sphere_ic_layers():
     A1_r_prof   = np.arange(1, N_prof + 1) * 1/N_prof
     A1_rho_prof = 3 - 2*A1_r_prof**2
     # Separate density profile into three layers of different materials
-#    A1_rho_prof *= np.array(
-#        [1]*int(N_prof/4) + [0.7]*int(N_prof/2) + [0.3]*int(N_prof/4)
-#        )
-#    A1_u_prof   = np.zeros(N_prof)
-#    A1_mat_prof = np.array(
-#        [0]*int(N_prof/4) + [1]*int(N_prof/2) + [2]*int(N_prof/4)
-#        )
     A1_rho_prof *= np.array(
-        [1]*int(N_prof/2) + [0.7]*int(N_prof/2)
+        [1]*int(N_prof/4) + [0.7]*int(N_prof/2) + [0.3]*int(N_prof/4)
         )
     A1_u_prof   = np.zeros(N_prof)
     A1_mat_prof = np.array(
-        [0]*int(N_prof/2) + [1]*int(N_prof/2)
+        [0]*int(N_prof/4) + [1]*int(N_prof/2) + [2]*int(N_prof/4)
         )
 
     # Generate particles
     particles   = GenSphereIC(
-        N_picle, A1_r_prof, A1_rho_prof, A1_u_prof, A1_mat_prof, #verb=2
+        N_picle, A1_r_prof, A1_rho_prof, A1_u_prof, A1_mat_prof, verb=2
         )
 
     # Figure
@@ -101,11 +104,19 @@ def test_gen_sphere_ic_layers():
     plt.xlim(0, None)
     plt.ylim(0, None)
 
+    plt.title("Test Sphere Initial Conditions (Multi-Layer)")
+
+    plt.tight_layout()
+
+    filename = "test_gen_sphere_ic_layers.png"
+    plt.savefig(filename)
+    print("Saved figure to %s" % filename)
+
     plt.show()
 
 
 if __name__ == "__main__":
-#    test_gen_sphere_ic_simple()
+    test_gen_sphere_ic_simple()
     test_gen_sphere_ic_layers()
 
 

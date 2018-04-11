@@ -407,6 +407,7 @@ class GenSphereIC(object):
             0  :  Minimal
             1  :  Standard (default)
             2  :  Extra
+            3  :  Debug
 
         Outputs
         -------
@@ -443,9 +444,11 @@ class GenSphereIC(object):
         self.A1_y   = []
         self.A1_z   = []
 
-        # # Check profiles start from non-zero radius...
+        # Check profiles start from non-zero radius
+        ...
 
-        # # Interpolate profiles if needed...
+        # Interpolate profiles if needed
+        ...
 
         # Calculate the mass profile
         self.get_mass_profile()
@@ -458,27 +461,28 @@ class GenSphereIC(object):
         self.find_material_boundaries()
         self.N_layer    = len(self.A1_r_bound)
 
-        # Layer info
         if verb >= 1:
-            if self.N_layer == 1:
+            print("\n%d layer(s):" % self.N_layer)
+            print(
+                "    Outer radius   Mass          Material"
+                )
+            for r_bound, idx_bound, mat in zip(
+                self.A1_r_bound, self.A1_idx_bound, self.A1_m_layer
+                ):
                 print(
-                    "\nOne layer with outer radius %g      (material %d)" %
-                    (self.A1_r_bound, self.A1_m_layer)
+                    "    %5e   %.5e   %d" %
+                    (r_bound, self.A1_m_enc_prof[idx_bound], mat)
                     )
-            else:
-                print("\n%d layers with outer boundary radii:" % self.N_layer)
-                for r_bound, mat in zip(self.A1_r_bound, self.A1_m_layer):
-                    print("  %.3e      (material %d)" % (r_bound, mat))
-
         if verb >= 1:
-            print("\nDividing the profile into shells...")
+            print("\n> Dividing the profile into shells")
 
         # First (innermost) layer
         i_layer = 0
         if verb >= 1 and self.N_layer > 1:
             print("\n==== Layer %d ====" % (i_layer + 1))
-        r_bound     = self.A1_r_bound[0]
+
         idx_bound   = self.A1_idx_bound[0]
+        r_bound     = self.A1_r_bound[0]
 
         # Vary the particle mass until the particle shell boundary matches the
         # profile boundary
@@ -490,17 +494,19 @@ class GenSphereIC(object):
         N_shell_init    = 0
 
         if verb >= 1:
-            print("\nTweaking the particle mass to fix the boundaries...")
-        if verb == 2:
-            print("  Particle mass   Relative tweak ", end='')
+            print("\n> Tweaking the particle mass to fix the outer boundary")
+        if verb == 3:
+            print("    Particle mass   Relative tweak ", end='')
 
         # This also sets the shell data: A1_idx_outer and A1_r_outer
         is_done = False
         while True:
-            if verb == 2:
-                print("\n  %.5e     %.1e " % (
-                    self.m_picle, self.dm_picle
-                    ), end='', flush=True)
+            if verb == 3:
+                # No endline so can add more on this line in the loop
+                print(
+                    "\n  %.5e     %.1e " % (self.m_picle, self.dm_picle),
+                    end='', flush=True
+                    )
 
             # Find the outer boundary radii of all shells
             A1_idx_outer    = []
@@ -535,10 +541,8 @@ class GenSphereIC(object):
                 # Find the profile radius just beyond this shell (r_outer + dr)
                 idx_outer   = np.searchsorted(self.A1_r_prof, r_outer + dr)
 
-                try:
-                    r_outer = self.A1_r_prof[idx_outer]
                 # Hit outer edge, stop
-                except IndexError:
+                if idx_outer >= idx_bound:
                     # Extend the final shell to include the tiny extra bit of
                     # this layer
                     if is_done:
@@ -546,6 +550,7 @@ class GenSphereIC(object):
                         A1_r_outer[-1]      = r_bound
 
                     break
+                r_outer = self.A1_r_prof[idx_outer]
 
                 # Record the shell
                 A1_idx_outer.append(idx_outer)
@@ -554,7 +559,7 @@ class GenSphereIC(object):
                 N_shell += 1
 
             if is_done:
-                if verb == 2:
+                if verb == 3:
                     print("")
                 break
 
@@ -571,7 +576,7 @@ class GenSphereIC(object):
             # Got one more shell, but need it to *just* fit, so go back one step
             # and retry with smaller mass changes (repeat this twice!)
             elif self.dm_picle > dm_picle_init * 1e-2:
-                if verb == 2:
+                if verb == 3:
                     print("  Reduce tweak", end='')
 
                 self.m_picle    *= 1 + self.dm_picle
@@ -584,11 +589,13 @@ class GenSphereIC(object):
                 is_done = True
 
         if verb >= 1:
-            print("Done particle mass tweaking!")
-        if verb == 2:
-            print("  from %.5e to %.5e" % (
+            print("> Done particle mass tweaking!")
+        if verb >= 2:
+            print("    from %.5e to %.5e" % (
                 self.m_picle_des, self.m_picle
                 ))
+        if verb >= 1:
+            print("\n%d shells in layer %d" % (N_shell, i_layer + 1))
 
         i_layer += 1
 
@@ -608,7 +615,8 @@ class GenSphereIC(object):
 
             # Calculate the shell width from the profile density
             # relative to the core radius and density
-            idx_inner   = self.A1_idx_bound[i_layer - 1] + 1
+            idx_inner   = self.A1_idx_bound[i_layer - 1]
+            r_inner     = self.A1_r_bound[i_layer - 1]
             rho         = self.A1_rho_prof[idx_inner]
             dr          = self.dr_core * np.cbrt(self.rho_core / rho)
 
@@ -617,99 +625,141 @@ class GenSphereIC(object):
 
             # Shell mass and initial number of particles
             m_shell         = sum(self.A1_m_prof[idx_inner:idx_outer])
-            N_shell_init    = int(round(m_shell / self.m_picle))
-            print("N_shell_init = ", N_shell_init)  ###
+            N_picle_shell   = int(round(m_shell / self.m_picle))
+            N_picle_init    = N_picle_shell
 
-            is_done = False
+            if verb >= 1:
+                print("\n> Tweaking the number of particles in the first shell "
+                      "to fix the outer boundary")
+            if verb == 3:
+                print("    Number   1st shell width", end='')
+
+            # Initialise
+            N_shell_init    = 0
+            dN_picle_shell  = 1
+            is_done         = False
             while True:
+                if verb == 3:
+                    # No endline so can add more on this line in the loop
+                    print("\n  %d      " % N_picle_shell, end='')
+
                 # Find the outer boundary radii of all shells
                 A1_idx_outer_tmp    = []
                 A1_r_outer_tmp      = []
 
-                # # # # # # WILO
+                # Set the starting dr by the shell that contains the mass of
+                # N_picle_shell particles, instead of continuing to use dr_core
+                idx_outer   = idx_inner + np.searchsorted(
+                    self.A1_m_enc_prof[idx_inner:]
+                    - self.A1_m_enc_prof[idx_inner],
+                    N_picle_shell * self.m_picle
+                    )
+                r_outer     = self.A1_r_prof[idx_outer]
+                self.dr_0   = r_outer - r_inner
 
-#                # Record shell boundary
-#                A1_idx_outer_tmp.append(idx_outer)
-#                A1_r_outer_tmp.append(self.dr_core)
-#
-#                # Find the shells that fit in this layer
-#                N_shell = 0
-#                while True:
-#                    # Calculate the shell width from the profile density
-#                    # relative to the core radius and density
-#                    rho = self.A1_rho_prof[idx_outer]
-#                    dr  = self.dr_core * np.cbrt(self.rho_core / rho)
-#
-#                    # Find the profile radius just beyond this shell (r_outer +
-#                    # dr)
-#                    idx_outer   = np.searchsorted(self.A1_r_prof, r_outer + dr)
-#
-#                    try:
-#                        r_outer = self.A1_r_prof[idx_outer]
-#                    # Hit outer edge, stop
-#                    except IndexError:
-#                        # Extend the final shell to include the tiny extra bit
-#                        # of this layer
-#                        if is_done:
-#                            A1_idx_outer_tmp[-1]    = idx_bound
-#                            A1_r_outer_tmp[-1]      = r_bound
-#
-#                        break
-#
-#                    # Record the shell
-#                    A1_idx_outer_tmp.append(idx_outer)
-#                    A1_r_outer_tmp.append(r_outer)
-#
-#                    N_shell += 1
-#
-#                if is_done:
-#                    break
-#
-#                # Number of shells for the starting particle mass
-#                if N_shell_init == 0:
-#                    N_shell_init    = N_shell
-#
-#                # Want to reduce the particle mass until one more shell *just*
-#                # fits
-#
-#                # Not got another shell yet, so reduce the mass
-#                if N_shell == N_shell_init:
-#                    self.m_picle    *= 1 - self.dm_picle
-#
-#                # Got one more shell, but need it to *just* fit, so go back one
-#                # step and retry with smaller mass changes (repeat this twice!)
-#                elif self.dm_picle > dm_picle_init * 1e-2:
-#                    if verb == 2:
-#                        print("  Reduce tweak", end='')
-#
-#                    self.m_picle    *= 1 + self.dm_picle
-#                    self.dm_picle   *= 1e-1
-#
-#                # Got one more shell and refined the mass so it just fits, so
-#                # done!
-#                else:
-#                    if verb == 2:
-#                        print()
-#
-#                    # Repeat one more time to extend the final shell to include
-#                    # the tiny extra bit of this layer
-#                    is_done = True
+                if verb == 3:
+                    print("%.3e" % self.dr_0, end='', flush=True)
 
-            # # # # # #
+                # Mass-weighted mean density
+                self.rho_0  = get_mass_weighted_mean(
+                    self.A1_m_prof[idx_inner:idx_outer],
+                    self.A1_rho_prof[idx_inner:idx_outer]
+                    )
+
+                # Record shell boundary
+                A1_idx_outer_tmp.append(idx_outer)
+                A1_r_outer_tmp.append(r_outer)
+
+                # Find the shells that fit in this layer
+                N_shell = 0
+                while True:
+                    # Calculate the shell width from the profile density
+                    # relative to the first shell in this layer
+                    rho = self.A1_rho_prof[idx_outer]
+                    dr  = self.dr_0 * np.cbrt(self.rho_0 / rho)
+
+                    # Find the profile radius just beyond this shell (r_outer +
+                    # dr)
+                    idx_outer   = np.searchsorted(self.A1_r_prof, r_outer + dr)
+
+                    # Hit outer edge, stop
+                    if idx_outer >= idx_bound:
+                        # Extend the final shell to include the tiny extra bit
+                        # of this layer
+                        if is_done:
+                            A1_idx_outer_tmp[-1]    = idx_bound
+                            A1_r_outer_tmp[-1]      = r_bound
+
+                        break
+                    r_outer = self.A1_r_prof[idx_outer]
+
+                    # Record the shell
+                    A1_idx_outer_tmp.append(idx_outer)
+                    A1_r_outer_tmp.append(r_outer)
+
+                    N_shell += 1
+
+                if is_done:
+                    if verb == 3:
+                        print()
+                    break
+
+                # Number of shells for the initial number of particles
+                if N_shell_init == 0:
+                    N_shell_init    = N_shell
+
+                # Want to change the number of particles in the first shell
+                # until either one more shell just fits or just until this
+                # number of shells just fits
+
+                # Got one more shell, so done!
+                if N_shell == N_shell_init + 1:
+                    # Repeat one more time to extend the final shell to include
+                    # the tiny extra bit of this layer
+                    is_done = True
+
+                # Got one less shell, so go back one step then done!
+                elif N_shell == N_shell_init - 1:
+                    N_picle_shell   -= 1
+
+                    # Repeat one more time to extend the final shell to include
+                    # the tiny extra bit of this layer
+                    is_done = True
+
+                # Not yet done so vary the number of particles in the first
+                # shell (i.e. try: N-1, N+1, N-2, N+2, ...)
+                else:
+                    N_picle_shell   += dN_picle_shell
+                    dN_picle_shell  = (
+                        -np.sign(dN_picle_shell) * (abs(dN_picle_shell) + 1)
+                        )
 
             # Add these to the previous layer(s)' shells
             A1_idx_outer.append(A1_idx_outer_tmp)
             A1_r_outer.append(A1_r_outer_tmp)
 
+            if verb >= 1:
+                print("> Done first-shell particle number tweaking!")
+            if verb >= 2:
+                print("    from %d to %d" % (
+                    N_picle_init, N_picle_shell
+                    ))
+            if verb >= 1:
+                print("\n%d shells in layer %d" % (N_shell, i_layer + 1))
+
             i_layer += 1
 
-        if verb >= 1:
-            print("\nDone profile division into shells!")
+        # Stack all layers' shells together
+        A1_idx_outer    = np.hstack(A1_idx_outer)
+        A1_r_outer      = np.hstack(A1_r_outer)
 
         if verb >= 1:
-            print("\nFinding the values for the particles in each shell...")
-        if verb == 2:
-            header  = ("  Radius    Number   Mass      Density   Energy    "
+            print("\n> Done profile division into shells!")
+
+        if verb >= 1:
+            print("\n> Finding the values for the particles in each shell")
+        if verb >= 2:
+            header  = ("    Radius    Number   Mass      Density   Energy    "
                        "Material")
             print(header)
 
@@ -748,16 +798,16 @@ class GenSphereIC(object):
 
             idx_inner   = idx_outer
 
-            if verb == 2:
-                print("  %.2e  %07d  %.2e  %.2e  %.2e  %d" % (
+            if verb >= 2:
+                print("    %.2e  %07d  %.2e  %.2e  %.2e  %d" % (
                     A1_r_shell[-1], A1_N_shell[-1], A1_m_picle_shell[-1],
                     A1_rho_shell[-1], A1_u_shell[-1], A1_mat_shell[-1]
                     ))
 
-        if verb == 2:
+        if verb >= 2:
             print(header)
         if verb >= 1:
-            print("Done shell particle values!")
+            print("> Done shell particle values!")
 
         # Estimate the smoothing lengths from the densities
         num_ngb     = 50
@@ -769,7 +819,7 @@ class GenSphereIC(object):
 
         # Generate the particles in each shell
         if verb >= 1:
-            print("\nArranging the particles in each shell...")
+            print("\n> Arranging the particles in each shell")
 
         for N, m, r, rho, h, u, mat in zip(
             A1_N_shell, A1_m_picle_shell, A1_r_shell, A1_rho_shell, A1_h_shell,
@@ -780,7 +830,7 @@ class GenSphereIC(object):
         self.flatten_particle_arrays()
 
         if verb >= 1:
-            print("Done particles!")
+            print("> Done particles!")
 
         self.N_picle    = len(self.A1_r)
         if verb >= 1:
@@ -868,6 +918,9 @@ class GenSphereIC(object):
             exec("self.A1_%s = np.hstack(self.A1_%s)" % (array, array))
 
         return
+
+
+
 
 
 
