@@ -2,8 +2,6 @@
 Tests the generation of spherical initial conditions following a density
 profile.
 """
-import sys
-sys.path.append("/media/jacob/Data/Dropbox/gihr/seagen")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,17 +10,15 @@ import mpl_toolkits.mplot3d.axes3d as axes3d
 from seagen import GenSphereIC
 from seagen.helper import polar_to_cartesian
 
-deg_to_rad  = np.pi/180
-
 
 def test_gen_sphere_ic_simple():
     """
     Tests the generation of spherical initial conditions following a simple
     density profile.
     """
-    print("==========================================================")
-    print(" Testing sphere initial conditions generation (simple)... ")
-    print("==========================================================")
+    print("=======================================================")
+    print(" Testing sphere initial conditions generation (simple) ")
+    print("=======================================================")
 
     N_picle = 1e4
 
@@ -67,9 +63,9 @@ def test_gen_sphere_ic_layers():
     Tests the generation of spherical initial conditions following a density
     profile with multiple layers and density discontinuities.
     """
-    print("===================================================================")
-    print(" Testing sphere initial conditions generation (multiple layers)... ")
-    print("===================================================================")
+    print("================================================================")
+    print(" Testing sphere initial conditions generation (multiple layers) ")
+    print("================================================================")
 
     N_picle = 1e4
 

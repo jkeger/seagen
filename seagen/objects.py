@@ -1,7 +1,7 @@
 """
 Objects for SEAGen
 
-Created by: Jacob Kegerreis and Josh Borrow
+Jacob Kegerreis and Josh Borrow
 
 This file includes:
 
@@ -12,7 +12,9 @@ This file includes:
       particles in nested shells.
 
 Notation:
-    Arrays of dimension * are explicitly labelled as A*_name
+    + Arrays of dimension * are explicitly labelled as A*_name
+    + Particle is abbreviated as picle
+    + Spherical polars: theta = zenith (colatitude), phi = azimuth (longitude)
 """
 
 import numpy as np
@@ -40,14 +42,6 @@ class GenShell(object):
         """
         Generates a single spherical shell of particles.
 
-        Access the particle positions with:
-            GenShell.x
-            GenShell.y
-            GenShell.z
-
-        (Spherical polar coordinates are used internally but do not have the
-        final rotation applied to them.)
-
 
         Inputs
         ------
@@ -63,34 +57,46 @@ class GenShell(object):
             sphere of particles after their intial placement (default: True).
 
 
+        Outputs
+        -------
+
+        Particle position arrays:
+            GenShell.A1_x
+            GenShell.A1_y
+            GenShell.A1_z
+
+        (Spherical polar coordinates are used internally but do not have the
+        final rotation applied to them.)
+
+
         Notation
         ------
 
         theta: zenith (colatitude)
         phi: azimuth (longitude)
         """
-        self.N = N
-        self.r = r * np.ones(N)
+        self.N      = N
+        self.A1_r   = r * np.ones(N)
 
         # Derived properties
-        self.A_reg = 4 * np.pi / N
+        self.A_reg  = 4 * np.pi / N
 
-        # Start in spherical polar coordinates
+        # Start in spherical polar coordinates for the initial placement
         self.get_collar_areas()
-        self.update_collar_thetas()
+        self.update_collar_colatitudes()
         self.get_point_positions()
         if do_stretch:
             self.apply_stretch_factor()
 
-        # Now convert to cartesian coordinates
-        self.x, self.y, self.z = polar_to_cartesian(
-            self.r, self.theta, self.phi
+        # Now convert to cartesian coordinates for the rotation and output
+        self.A1_x, self.A1_y, self.A1_z = polar_to_cartesian(
+            self.A1_r, self.A1_theta, self.A1_phi
             )
         if do_rotate:
             self.apply_random_rotation()
 
 
-    def get_cap_theta(self) -> float:
+    def get_cap_colatitude(self) -> float:
         """
         Gets the cap colatitude, theta_cap.
 
@@ -106,31 +112,32 @@ class GenShell(object):
         Equation 4.
         """
 
-        theta_cap = self.get_cap_theta()
+        theta_cap   = self.get_cap_colatitude()
 
-        self.N_col = int(round((np.pi - 2 * theta_cap)/(np.sqrt(self.A_reg))))
+        self.N_col  = int(round((np.pi - 2 * theta_cap)/(np.sqrt(self.A_reg))))
 
         return self.N_col
 
 
-    def get_collar_thetas(self) -> np.ndarray:
+    def get_collar_colatitudes(self) -> np.ndarray:
         """
-        Gets the top theta of all of the collars, including the bottom cap's
-        theta, and stores them in self.collars as well as returning them.
+        Gets the top A1_theta of all of the collars, including the bottom cap's
+        A1_theta, and stores them in self.A1_collar_theta as well as returning
+        them.
         """
-        n_collars = self.get_number_of_collars()
+        self.get_number_of_collars()
 
-        cap_height = self.get_cap_theta()
-        height_of_collar = (np.pi - 2 * cap_height) / n_collars
+        cap_height          = self.get_cap_colatitude()
+        height_of_collar    = (np.pi - 2 * cap_height) / self.N_col
 
         # Allocate collars array
-        self.collars = np.arange(n_collars+1, dtype=float)
+        self.A1_collar_theta    = np.arange(self.N_col + 1, dtype=float)
         # Collars have a fixed height initially
-        self.collars *= height_of_collar
+        self.A1_collar_theta    *= height_of_collar
         # Starting at the bottom of the top polar cap
-        self.collars += (cap_height)
+        self.A1_collar_theta    += (cap_height)
 
-        return self.collars
+        return self.A1_collar_theta
 
 
     def get_collar_area(
@@ -144,29 +151,29 @@ class GenShell(object):
 
         Equation 5.
         """
-        sin2_theta_i = np.sin(theta_i / 2)**2
-        sin2_theta_i_m_o = np.sin(theta_i_minus_one / 2)**2
+        sin2_theta_i        = np.sin(theta_i / 2)**2
+        sin2_theta_i_m_o    = np.sin(theta_i_minus_one / 2)**2
 
         return 4 * np.pi * (sin2_theta_i - sin2_theta_i_m_o)
 
 
     def get_collar_areas(self) -> np.ndarray:
         """
-        Gets the collar areas and stores them in self.collar_areas.
+        Gets the collar areas and stores them in self.A1_collar_area.
         """
-        collar_thetas = self.get_collar_thetas()
+        self.get_collar_colatitudes()
 
-        self.collar_areas = np.empty(self.N_col)
+        self.A1_collar_area = np.empty(self.N_col)
 
-        self.collar_areas[:] = self.get_collar_area(
-            collar_thetas[1:],
-            collar_thetas[:-1]
+        self.A1_collar_area[:]  = self.get_collar_area(
+            self.A1_collar_theta[1:],
+            self.A1_collar_theta[:-1]
         )
 
-        return self.collar_areas
+        return self.A1_collar_area
 
 
-    def get_ideal_n_regions_in_collar(self, A_col: float) -> float:
+    def get_ideal_N_regions_in_collar(self, A_col: float) -> float:
         """
         Gets the ideal number of regions in a collar.
 
@@ -175,55 +182,56 @@ class GenShell(object):
         return A_col / self.A_reg
 
 
-    def get_n_regions_in_collars(self) -> np.ndarray:
+    def get_N_regions_in_collars(self) -> np.ndarray:
         """
         Gets the number of regions in each collar.
 
-        Stores them in self.n_regions_in_collars.
+        Stores them in self.A1_N_reg_in_collar.
 
         Equation 8,9.
         """
-        n_regions_in_collars = np.empty(self.N_col, dtype=int)
-        collar_areas = self.get_collar_areas()
+        A1_N_reg_in_collar  = np.empty(self.N_col, dtype=int)
+        collar_areas        = self.get_collar_areas()
 
-        loop = enumerate(
-            np.nditer(n_regions_in_collars, op_flags=["readwrite"])
+        loop    = enumerate(
+            np.nditer(A1_N_reg_in_collar, op_flags=["readwrite"])
         )
 
         discrepancy = 0
 
         for i, N_i in loop:
-            ideal_n_reg = self.get_ideal_n_regions_in_collar(collar_areas[i])
-            N_i[...] = int(round(ideal_n_reg + discrepancy))
+            N_reg_ideal = self.get_ideal_N_regions_in_collar(collar_areas[i])
+            N_i[...]    = int(round(N_reg_ideal + discrepancy))
 
-            discrepancy += ideal_n_reg - N_i
+            discrepancy += N_reg_ideal - N_i
 
-        self.n_regions_in_collars = n_regions_in_collars
+        self.A1_N_reg_in_collar = A1_N_reg_in_collar
 
-        return self.n_regions_in_collars
+        return self.A1_N_reg_in_collar
 
 
-    def update_collar_thetas(self) -> np.ndarray:
+    def update_collar_colatitudes(self) -> np.ndarray:
         """
-        After get_n_regions_in_collars, we must update the collar thetas due to
+        After get_N_regions_in_collars, we must update the collar thetas due to
         the now integer numbers of regions in each collar instead of the ideal.
 
-        Also returns self.collars.
+        Also returns self.A1_collar_theta.
 
         Equation 10.
         """
         # First we must get the cumulative number of regions in each collar,
         # including the top polar cap
-        n_regions_cum = np.cumsum(self.get_n_regions_in_collars()) + 1
-        n_regions_cum = np.append([1], n_regions_cum)
+        A1_N_reg_in_collar_cum  = np.cumsum(self.get_N_regions_in_collars()) + 1
+        A1_N_reg_in_collar_cum  = np.append([1], A1_N_reg_in_collar_cum)
 
-        self.collars = 2 * np.arcsin(np.sqrt(n_regions_cum * self.A_reg / \
-                                             (4 * np.pi)))
+        self.A1_collar_theta    = 2 * np.arcsin(
+            np.sqrt(A1_N_reg_in_collar_cum * self.A_reg / (4 * np.pi))
+            )
 
-        return self.collars
+        return self.A1_collar_theta
 
 
-    def choose_phi_0(self,
+    def choose_longitude_offset(self,
             N_i: int,
             N_i_minus_one: int,
             d_phi_i: float,
@@ -235,8 +243,8 @@ class GenShell(object):
 
         Paragraph following Equation 12.
         """
-        N_i_even = abs((N_i % 2) - 1)
-        N_i_minus_one_even = abs((N_i_minus_one % 2) - 1)
+        N_i_even            = abs((N_i % 2) - 1)
+        N_i_minus_one_even  = abs((N_i_minus_one % 2) - 1)
 
         if N_i_even != N_i_minus_one_even:
             # Exclusive or
@@ -250,32 +258,34 @@ class GenShell(object):
         """
         Sets the point positions in the centres of every region.
 
-        Stores in self.theta, self.phi and also returns them.
+        Stores in self.A1_theta, self.A1_phi and also returns them.
 
         Equation 11,12.
         """
-        N_tot   = self.n_regions_in_collars.sum() + 2
+        N_tot   = self.A1_N_reg_in_collar.sum() + 2
 
-        self.theta  = np.empty(N_tot)
-        self.phi    = np.empty(N_tot)
+        self.A1_theta   = np.empty(N_tot)
+        self.A1_phi     = np.empty(N_tot)
 
         # The cap particles are at the poles, listed at the end of these arrays.
-        self.theta[-2]  = 0.0
-        self.theta[-1]  = np.pi
-        self.phi[-2]    = 0.0
-        self.phi[-1]    = 0.0
+        self.A1_theta[-2]   = 0.0
+        self.A1_theta[-1]   = np.pi
+        self.A1_phi[-2]     = 0.0
+        self.A1_phi[-1]     = 0.0
 
         # All regions in a collar are at the same colatitude, theta.
-        theta = np.zeros(self.N_col + 2)
-        theta[:-2] = 0.5 * (self.collars[:-1] + self.collars[1:])
+        A1_theta        = np.zeros(self.N_col + 2)
+        A1_theta[:-2]   = 0.5 * (
+            self.A1_collar_theta[:-1] + self.A1_collar_theta[1:]
+            )
 
         # Particles in each collar are equally spaced in longitude, phi,
         # and offset appropriately from the previous collar.
-        d_phi = 2 * np.pi / self.n_regions_in_collars
-        phi_0 = np.empty(self.N_col)
+        A1_d_phi    = 2 * np.pi / self.A1_N_reg_in_collar
+        A1_phi_0    = np.empty(self.N_col)
 
         loop = enumerate(
-            np.nditer(phi_0, op_flags=["writeonly"])
+            np.nditer(A1_phi_0, op_flags=["writeonly"])
         )
 
         for i, phi_0_i in loop:
@@ -284,43 +294,44 @@ class GenShell(object):
             if i == 0:
                 phi_0_i = 0
             else:
-                phi_0_i = self.choose_phi_0(
-                    self.n_regions_in_collars[i],
-                    self.n_regions_in_collars[i-1],
-                    d_phi[i],
-                    d_phi[i-1]
+                phi_0_i = self.choose_longitude_offset(
+                    self.A1_N_reg_in_collar[i],
+                    self.A1_N_reg_in_collar[i-1],
+                    A1_d_phi[i],
+                    A1_d_phi[i-1]
                 )
 
                 # Also add a random initial offset to ensure that successive
                 # collars do not create lines of ~adjacent particles.
                 # (Second paragraph following Equation 12.)
-                m = np.random.randint(0, self.n_regions_in_collars[i-1])
-                phi_0_i += (m * d_phi[i-1])
+                m       = np.random.randint(0, self.A1_N_reg_in_collar[i-1])
+                phi_0_i += (m * A1_d_phi[i-1])
 
         # Fill the position arrays.
-        cumulative_number = 0
         loop = enumerate(
-            np.nditer(self.n_regions_in_collars, op_flags=["readonly"])
+            np.nditer(self.A1_N_reg_in_collar, op_flags=["readonly"])
         )
 
-        for region, n_regions_in_collar in loop:
-            next_cumulative_number = n_regions_in_collar + cumulative_number
+        N_regions_done  = 0
+        for region, N_regions_in_collar in loop:
+            N_regions_done_next = N_regions_in_collar + N_regions_done
 
-            # Set theta
-            self.theta[cumulative_number:next_cumulative_number] = theta[region]
+            # Set A1_theta
+            self.A1_theta[N_regions_done:N_regions_done_next] = A1_theta[region]
 
             # Set phi (Equation 12)
-            j = np.arange(n_regions_in_collar, dtype=float)
-            these_phi = phi_0[region] + j * d_phi[region]
-            self.phi[cumulative_number:next_cumulative_number] = these_phi
+            j               = np.arange(N_regions_in_collar, dtype=float)
+            A1_phi_collar   = A1_phi_0[region] + j * A1_d_phi[region]
 
-            cumulative_number = next_cumulative_number
+            self.A1_phi[N_regions_done:N_regions_done_next] = A1_phi_collar
 
-        self.phi %= 2 * np.pi
-        self.theta %= np.pi
-        self.theta[-1] = np.pi
+            N_regions_done  = N_regions_done_next
 
-        return self.theta, self.phi
+        self.A1_phi         %= 2 * np.pi
+        self.A1_theta       %= np.pi
+        self.A1_theta[-1]   = np.pi
+
+        return self.A1_theta, self.A1_phi
 
 
     def apply_stretch_factor(self, a=0.2, b=2.0):
@@ -329,19 +340,21 @@ class GenShell(object):
 
         Equation 13.
         """
-        pi_over_2 = np.pi / 2
-        inv_sqrtN = 1 / np.sqrt(self.N)
+        pi_over_2   = np.pi / 2
+        inv_sqrtN   = 1 / np.sqrt(self.N)
 
-        prefactor = (pi_over_2 - self.theta) * a * inv_sqrtN
+        A1_prefactor    = (pi_over_2 - self.A1_theta) * a * inv_sqrtN
 
-        exp_factor = - ((pi_over_2 - abs(pi_over_2 - self.theta))
-                        / (np.pi * b * inv_sqrtN))
+        A1_exp_factor   = - (
+            (pi_over_2 - abs(pi_over_2 - self.A1_theta))
+            / (np.pi * b * inv_sqrtN)
+            )
 
-        self.theta += (prefactor * np.exp(exp_factor))
+        self.A1_theta   += (A1_prefactor * np.exp(A1_exp_factor))
 
         # Leave the cap points at the poles
-        self.theta[-2] = 0.0
-        self.theta[-1] = np.pi
+        self.A1_theta[-2]   = 0.0
+        self.A1_theta[-1]   = np.pi
 
         return
 
@@ -357,14 +370,14 @@ class GenShell(object):
         A2_rot  = get_euler_rotation_matrix(alpha, beta, gamma)
 
         # Array of position vectors
-        A2_pos  = np.array([self.x, self.y, self.z]).transpose()
+        A2_pos  = np.array([self.A1_x, self.A1_y, self.A1_z]).transpose()
 
         # Rotate each position vector
         for i in range(len(A2_pos)):
             A2_pos[i]   = np.dot(A2_rot, A2_pos[i])
 
         # Unpack positions
-        self.x, self.y, self.z  = A2_pos.transpose()
+        self.A1_x, self.A1_y, self.A1_z  = A2_pos.transpose()
 
         return
 
@@ -392,19 +405,19 @@ class GenSphereIC(object):
         @param N_picle_des | float | desired number of particles.
 
         @param A1_r_prof | ndarray | an array of the profile radii for this
-                                     layer.
+            layer.
 
         @param A1_rho_prof | ndarray | an array of densities at the profile
-                                       radii.
+            radii.
 
         @param A1_u_prof | ndarray | an array of specific internal energies at
-                                     the profile radii.
+            the profile radii.
 
         @param A1_mat_prof | ndarray | an array of material identifiers at the
-                                       profile radii.
+            profile radii.
 
         @param verb | (opt.) int | verbosity to control printed output:
-            0  :  Minimal
+            0  :  None
             1  :  Standard (default)
             2  :  Extra
             3  :  Debug
@@ -412,14 +425,24 @@ class GenSphereIC(object):
         Outputs
         -------
 
-        GenSphereIC.A1_r, .A1_x, .A1_y, .A1_z, .A1_m, .A1_rho, .A1_h, .A1_u,
-            .A1_mat
+        Particle data arrays:
+            GenSphereIC.A1_x, A1_y, A1_z, A1_r, A1_m, A1_rho, A1_h, A1_u, A1_mat
         """
+        # ========
+        # Setup
+        # ========
         self.N_picle_des    = N_picle_des
         self.A1_r_prof      = A1_r_prof
         self.A1_rho_prof    = A1_rho_prof
         self.A1_u_prof      = A1_u_prof
         self.A1_mat_prof    = A1_mat_prof
+
+        # Verbosity
+        if verb >= 1:
+            verb_options    = {
+                0: "None", 1: "Standard", 2: "Extra", 3: "Debug"
+                }
+            print("\nVerbosity %d: %s printing" % (verb, verb_options[verb]))
 
         self.N_prof     = len(self.A1_r_prof)
         self.A1_m_prof  = np.empty(self.N_prof)
@@ -447,7 +470,7 @@ class GenSphereIC(object):
         # Check profiles start from non-zero radius
         ...
 
-        # Interpolate profiles if needed
+        # Interpolate profiles if not dense enough in radius
         ...
 
         # Calculate the mass profile
@@ -456,6 +479,15 @@ class GenSphereIC(object):
         self.A1_m_enc_prof  = np.cumsum(self.A1_m_prof)
         self.m_tot          = self.A1_m_enc_prof[-1]
         self.m_picle_des    = self.m_tot / self.N_picle_des
+
+        # Max allowed particle mass
+        m_picle_max = self.m_picle_des * 1.01
+        # Initial relative particle mass tweak
+        dm_picle_init   = 1e-3
+        # SPH Kernel: number of neighbours (approximate) and r/h at which the
+        # kernel goes to zero
+        num_ngb     = 50
+        kernel_edge = 2
 
         # Find the radii of all material boundaries (including the outer edge)
         self.find_material_boundaries()
@@ -473,10 +505,12 @@ class GenSphereIC(object):
                     "    %5e   %.5e   %d" %
                     (r_bound, self.A1_m_enc_prof[idx_bound], mat)
                     )
-        if verb >= 1:
-            print("\n> Dividing the profile into shells")
 
+            print("\n> Divide the profile into shells")
+
+        # ================
         # First (innermost) layer
+        # ================
         i_layer = 0
         if verb >= 1 and self.N_layer > 1:
             print("\n==== Layer %d ====" % (i_layer + 1))
@@ -484,17 +518,17 @@ class GenSphereIC(object):
         idx_bound   = self.A1_idx_bound[0]
         r_bound     = self.A1_r_bound[0]
 
+        # ========
         # Vary the particle mass until the particle shell boundary matches the
         # profile boundary
-
+        # ========
         # Start at the maximum allowed particle mass then decrease to fit
-        self.m_picle    = self.m_picle_des * 1.01
-        dm_picle_init   = 1e-3
+        self.m_picle    = m_picle_max
         self.dm_picle   = dm_picle_init
         N_shell_init    = 0
 
         if verb >= 1:
-            print("\n> Tweaking the particle mass to fix the outer boundary")
+            print("\n> Tweak the particle mass to fix the outer boundary")
         if verb == 3:
             print("    Particle mass   Relative tweak ", end='')
 
@@ -530,7 +564,9 @@ class GenSphereIC(object):
             A1_idx_outer.append(idx_outer)
             A1_r_outer.append(self.dr_core)
 
+            # ========
             # Find the shells that fit in this layer
+            # ========
             N_shell = 0
             while True:
                 # Calculate the shell width from the profile density relative to
@@ -567,8 +603,9 @@ class GenSphereIC(object):
             if N_shell_init == 0:
                 N_shell_init    = N_shell
 
-            # Want to reduce the particle mass until one more shell *just* fits
-
+            # ========
+            # Reduce the particle mass until one more shell *just* fits
+            # ========
             # Not got another shell yet, so reduce the mass
             if N_shell == N_shell_init:
                 self.m_picle    *= 1 - self.dm_picle
@@ -599,7 +636,9 @@ class GenSphereIC(object):
 
         i_layer += 1
 
+        # ================
         # Outer layer(s)
+        # ================
         while i_layer < self.N_layer:
             if verb >= 1:
                 print("\n==== Layer %d ====" % (i_layer + 1))
@@ -607,12 +646,10 @@ class GenSphereIC(object):
             r_bound     = self.A1_r_bound[i_layer]
             idx_bound   = self.A1_idx_bound[i_layer]
 
-            # Vary the number of particles in the first shell of this layer
-            # until the particle shell boundary matches the profile boundary
-
+            # ========
             # First find the initial number of particles continuing from the
             # previous layer
-
+            # ========
             # Calculate the shell width from the profile density
             # relative to the core radius and density
             idx_inner   = self.A1_idx_bound[i_layer - 1]
@@ -628,8 +665,12 @@ class GenSphereIC(object):
             N_picle_shell   = int(round(m_shell / self.m_picle))
             N_picle_init    = N_picle_shell
 
+            # ========
+            # Vary the number of particles in the first shell of this layer
+            # until the particle shell boundary matches the profile boundary
+            # ========
             if verb >= 1:
-                print("\n> Tweaking the number of particles in the first shell "
+                print("\n> Tweak the number of particles in the first shell "
                       "to fix the outer boundary")
             if verb == 3:
                 print("    Number   1st shell width", end='')
@@ -670,7 +711,9 @@ class GenSphereIC(object):
                 A1_idx_outer_tmp.append(idx_outer)
                 A1_r_outer_tmp.append(r_outer)
 
+                # ========
                 # Find the shells that fit in this layer
+                # ========
                 N_shell = 0
                 while True:
                     # Calculate the shell width from the profile density
@@ -708,10 +751,11 @@ class GenSphereIC(object):
                 if N_shell_init == 0:
                     N_shell_init    = N_shell
 
-                # Want to change the number of particles in the first shell
-                # until either one more shell just fits or just until this
-                # number of shells just fits
-
+                # ========
+                # Change the number of particles in the first shell until either
+                # one more shell just fits or just until this number of shells
+                # just fits
+                # ========
                 # Got one more shell, so done!
                 if N_shell == N_shell_init + 1:
                     # Repeat one more time to extend the final shell to include
@@ -757,13 +801,15 @@ class GenSphereIC(object):
             print("\n> Done profile division into shells!")
 
         if verb >= 1:
-            print("\n> Finding the values for the particles in each shell")
+            print("\n> Find the values for the particles in each shell")
         if verb >= 2:
             header  = ("    Radius    Number   Mass      Density   Energy    "
                        "Material")
             print(header)
 
+        # ================
         # Set the particle values for each shell
+        # ================
         idx_inner   = 0
         for i_shell, idx_outer in enumerate(A1_idx_outer):
             A1_m_prof_shell = self.A1_m_prof[idx_inner:idx_outer]
@@ -782,10 +828,10 @@ class GenSphereIC(object):
             r_half  = (
                 self.A1_r_prof[idx_inner] + self.A1_r_prof[idx_outer]
                 ) / 2
-            r_mwm   = get_mass_weighted_mean(
+            r_mw    = get_mass_weighted_mean(
                 A1_m_prof_shell, self.A1_r_prof[idx_inner:idx_outer]
                 )
-            A1_r_shell.append((r_half + r_mwm) / 2)
+            A1_r_shell.append((r_half + r_mw) / 2)
 
             # Other properties
             A1_rho_shell.append(get_mass_weighted_mean(
@@ -810,16 +856,16 @@ class GenSphereIC(object):
             print("> Done shell particle values!")
 
         # Estimate the smoothing lengths from the densities
-        num_ngb     = 50
-        kernel_edge = 2
         A1_h_shell  = (
             3/(4*np.pi) * num_ngb * np.array(A1_m_shell) / np.cbrt(A1_rho_shell)
             / kernel_edge
             )
 
+        # ================
         # Generate the particles in each shell
+        # ================
         if verb >= 1:
-            print("\n> Arranging the particles in each shell")
+            print("\n> Arrange the particles in each shell")
 
         for N, m, r, rho, h, u, mat in zip(
             A1_N_shell, A1_m_picle_shell, A1_r_shell, A1_rho_shell, A1_h_shell,
@@ -836,6 +882,7 @@ class GenSphereIC(object):
         if verb >= 1:
             print("\nFinal number of particles = %d" % self.N_picle)
 
+
     def get_mass_profile(self):
         """
         Calculate the mass profile from the density profile.
@@ -850,6 +897,7 @@ class GenSphereIC(object):
             )
 
         return
+
 
     def find_material_boundaries(self):
         """
@@ -866,6 +914,7 @@ class GenSphereIC(object):
 
         return
 
+
     def get_tetrahedron_points(self, r: float):
         """
         Return the positions of particles at the vertices of a tetrahedron with
@@ -879,6 +928,7 @@ class GenSphereIC(object):
         A1_z    = np.array([1, -1, -1, 1]) * r_scale
 
         return A1_x, A1_y, A1_z
+
 
     def generate_shell_particles(
         self, N: int, m: float, r: float, rho: float, h: float, u: float,
@@ -904,11 +954,12 @@ class GenSphereIC(object):
         # Make an SEA shell otherwise
         else:
             shell = GenShell(N, r)
-            self.A1_x.append(shell.x)
-            self.A1_y.append(shell.y)
-            self.A1_z.append(shell.z)
+            self.A1_x.append(shell.A1_x)
+            self.A1_y.append(shell.A1_y)
+            self.A1_z.append(shell.A1_z)
 
         return
+
 
     def flatten_particle_arrays(self):
         """
