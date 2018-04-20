@@ -5,7 +5,7 @@ GNU General Public License http://www.gnu.org/licenses/
 
 Jacob Kegerreis and Josh Borrow
 
-Objects for SEAGen
+Objects for SEAGen.
 
 This file includes:
     + GenShell, an object for generating individual spherical shells of
@@ -26,7 +26,7 @@ from warnings import warn
 from scipy.integrate import quad
 
 from seagen.helper import polar_to_cartesian, get_euler_rotation_matrix, \
-    get_shell_mass, get_mass_weighted_mean
+    get_shell_mass, get_weighted_mean
 
 try:
     from tqdm import tqdm
@@ -558,7 +558,7 @@ class GenSphereIC(object):
             self.dr_core    = r_outer
 
             # Mass-weighted mean density
-            self.rho_core   = get_mass_weighted_mean(
+            self.rho_core   = get_weighted_mean(
                 self.A1_m_prof[:idx_outer], self.A1_rho_prof[:idx_outer]
                 )
 
@@ -704,7 +704,7 @@ class GenSphereIC(object):
                     print("%.3e" % self.dr_0, end='', flush=True)
 
                 # Mass-weighted mean density
-                self.rho_0  = get_mass_weighted_mean(
+                self.rho_0  = get_weighted_mean(
                     self.A1_m_prof[idx_inner:idx_outer],
                     self.A1_rho_prof[idx_inner:idx_outer]
                     )
@@ -830,16 +830,16 @@ class GenSphereIC(object):
             r_half  = (
                 self.A1_r_prof[idx_inner] + self.A1_r_prof[idx_outer]
                 ) / 2
-            r_mw    = get_mass_weighted_mean(
+            r_mw    = get_weighted_mean(
                 A1_m_prof_shell, self.A1_r_prof[idx_inner:idx_outer]
                 )
             A1_r_shell.append((r_half + r_mw) / 2)
 
             # Other properties
-            A1_rho_shell.append(get_mass_weighted_mean(
+            A1_rho_shell.append(get_weighted_mean(
                 A1_m_prof_shell, self.A1_rho_prof[idx_inner:idx_outer]
                 ))
-            A1_u_shell.append(get_mass_weighted_mean(
+            A1_u_shell.append(get_weighted_mean(
                 A1_m_prof_shell, self.A1_u_prof[idx_inner:idx_outer]
                 ))
             A1_mat_shell.append(self.A1_mat_prof[idx_inner])

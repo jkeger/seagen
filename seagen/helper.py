@@ -7,7 +7,17 @@ Jacob Kegerreis and Josh Borrow
 
 Helper functions for SEAGen.
 
-Created by: Josh Borrow (joshua.borrow@durham.ac.uk) and Jacob Kegerreis
+This file includes:
+    + check_valid_polar, to check polar coordinates
+    + polar_to_cartesian, to convert from polar to cartesian coordinates
+    + get_euler_rotation_matrix, to generate a rotation matrix from Euler angles
+    + get_shell_mass, to calculate the mass of a spherical shell
+    + get_weighted_mean, to get the mean of an array weighted by another array
+
+Notation:
+    + Arrays of dimension * are explicitly labelled as A*_name
+    + Particle is abbreviated as picle
+    + Spherical polars: theta = zenith (colatitude), phi = azimuth (longitude)
 """
 
 import numpy as np
@@ -20,7 +30,9 @@ class InvalidCoordinate(Exception):
 
 
 def check_valid_polar(
-    r: np.ndarray, theta: np.ndarray, phi: np.ndarray
+        r: np.ndarray,
+        theta: np.ndarray,
+        phi: np.ndarray
     ) -> bool:
     """
     Check if these are valid polar co-ordinates; i.e.
@@ -63,7 +75,7 @@ def polar_to_cartesian(
     phi: azimuth (longitude)
     """
 
-    if True:#check_valid_polar(r, theta, phi):
+    if check_valid_polar(r, theta, phi):
         x = r * np.cos(phi) * np.sin(theta)
         y = r * np.sin(phi) * np.sin(theta)
         z = r * np.cos(theta)
@@ -74,9 +86,14 @@ def polar_to_cartesian(
         return None, None, None
 
 
-def get_euler_rotation_matrix(alpha, beta, gamma):
+def get_euler_rotation_matrix(
+        alpha: float,
+        beta: float,
+        gamma: float
+    ) -> np.ndarray:
     """
-    Return the rotation matrix for three Euler angles.
+    Return the rotation matrix for three Euler angles, alpha, beta, and
+    gamma. Returns a 3x3 matrix as a np.ndarray.
     """
     sa = np.sin(alpha)
     ca = np.cos(alpha)
@@ -86,10 +103,10 @@ def get_euler_rotation_matrix(alpha, beta, gamma):
     cg = np.cos(gamma)
 
     return np.array([
-        [cg*cb*ca - sg*sa,      cg*cb*sa + sg*ca,       -cg*sb],
-        [-sg*cb*ca - cg*sa,     -sg*cb*sa + cg*ca,      sg*sb],
-        [sb*ca,                 sb*sa,                  cb]
-        ])
+        [cg*cb*ca - sg*sa,    cg*cb*sa + sg*ca, -cg*sb],
+        [-sg*cb*ca - cg*sa,  -sg*cb*sa + cg*ca,  sg*sb],
+        [      sb*ca,             sb*sa,           cb ]
+    ])
 
 
 def get_shell_mass(r_inner: float, r_outer: float, rho: float) -> float:
@@ -99,11 +116,11 @@ def get_shell_mass(r_inner: float, r_outer: float, rho: float) -> float:
     return 4/3*np.pi * rho * (r_outer**3 - r_inner**3)
 
 
-def get_mass_weighted_mean(A1_mass: np.ndarray, A1_value: np.ndarray) -> float:
+def get_weighted_mean(A1_weight: float, A1_value: float) -> float:
     """
-    Calculate the mean of the value array weighted by the mass array.
+    Calculate the mean of the value array weighted by the weights array.
     """
-    return np.sum(A1_mass * A1_value) / np.sum(A1_mass)
+    return np.sum(A1_weight * A1_value) / np.sum(A1_weight)
 
 
 
