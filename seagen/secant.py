@@ -1,4 +1,10 @@
 """
+This file is part of SEAGen.
+Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
+GNU General Public License http://www.gnu.org/licenses/
+
+Jacob Kegerreis and Josh Borrow
+
 Secant method implementation for root-finding in SPH.
 
 Created by: Josh Borrow
@@ -18,14 +24,14 @@ def x_n(x_n_1, x_n_2, f_x_n_1, f_x_n_2):
     ------
 
     @param x_n_1 | float | x_{n-1}
-    
+
     @param x_n_2 | float | x_{n-2}
 
     @param f_x_n_1 | float | f(x_{n-1})
-    
+
     @param f_x_n_2 | float | f(x_{n-2})
 
-    
+
     Outputs
     -------
 
@@ -64,7 +70,7 @@ def initial_conditions(
     """
 
     x_n_1 = x * (1 - tol)
-    
+
     f_x_n_1 = f(x_n_1)
     f_x_n_2 = f(x)
 

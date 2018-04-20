@@ -1,5 +1,11 @@
 """
-Tests the helper functions
+This file is part of SEAGen.
+Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
+GNU General Public License http://www.gnu.org/licenses/
+
+Jacob Kegerreis and Josh Borrow
+
+Tests for helper functions
 """
 
 import numpy as np

@@ -1,4 +1,10 @@
 """
+This file is part of SEAGen.
+Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
+GNU General Public License http://www.gnu.org/licenses/
+
+Jacob Kegerreis and Josh Borrow
+
 Some miniature-SPH (that is _very slow_) to help with the initial conditions
 generator.
 
@@ -20,24 +26,24 @@ def cubic_spline(r, h):
     """
     The un-vectorized version of the cubic spline kernel, which is then vectorized
     by numba.
-    
+
     Inputs
     ------
-    
+
     @param r | float | distance between the two particles
-    
+
     @param h | float | smoothing length of the particle i.
-    
-    
+
+
     Outputs
     -------
-    
+
     @output W | float | the kernel at r/h.
     """
-    
+
     sigma_3 = 1 / (np.pi * h * h * h)
     q = abs(r / h)
-    
+
     if q <= 1.0:
         q2 = q * q
         W = 1.0 - 1.5 * q2 * (1.0 - 0.5 * q)
@@ -49,7 +55,7 @@ def cubic_spline(r, h):
         W *= sigma_3
     else:
         W = 0
-        
+
     return W
 
 
@@ -62,83 +68,83 @@ class EquationOfState(object):
         """
         Equation of state:
                 P = A \rho^\gamma .
-        
+
         Inputs
         ------
-        
+
         @param gamma | float | the hydro_gamma for the equation of state.
-        
+
         @param entropy | float | the fixed entropy; this acts as a normalisation.
-        
-        
+
+
         Outputs
         -------
-        
+
         You can access the equation of state through the following functions:
-        
+
         EquationOfState.get_pressure(density)
         EquationOfState.get_internal_energy(density)
         """
-        
+
         self.gamma = gamma
         self.entropy = entropy
-        
+
         return
-        
-    
+
+
     def get_pressure(self, density: np.ndarray) -> np.ndarray:
         """
         Get the pressure from the internal energy.
-        
+
         Inputs
         ------
-        
+
         @param density | np.ndarray | the SPH densities of the particles
-        
-        
+
+
         Outputs
         -------
-        
+
         @output P | np.ndarray | the pressures of the particles.
         """
-        
+
         return self.entropy * np.power(density, self.gamma)
-    
-    
+
+
     def get_internal_energy(self, density: np.ndarray) -> np.ndarray:
         """
         Gets the internal energy per unit mass.
-        
+
         Inputs
         ------
-        
+
         @param density | np.ndarray | the SPH densities of the particles
-        
-        
+
+
         Outputs
         -------
-        
+
         @output u | np.ndarray | the internal energies of the particles.
         """
-        
+
         g_minus_one = self.gamma - 1
-        
+
         prefactor = A / g_minus_one
-        
+
         density_power = np.power(density, g_minus_one)
-        
+
         return prefactor * density_power
-    
+
 
 class SPHDataset(object):
     """
     An SPH dataset object. This will calculate the following properties:
-    
+
     + Density
     + Smoothing Length
     + Internal Energy
     + Pressure
-    
+
     for all of the particles, when given a kernel, particles, and an equation
     of state.
     """
@@ -155,68 +161,68 @@ class SPHDataset(object):
         ):
         """
         Note that this is not a particularly memory-lean or quick SPH code.
-        
+
         Inputs
         ------
-        
+
         @param x, y, z | np.ndarray | x, y, z, positions of particles
-        
+
         @param m | np.ndarray | the particle masses
-        
+
         @param eta | float | kernel eta used to constrain smoothing lengths
-   
+
         @param h_init | float | initial smoothing length for all particles
-        
+
         @param kernel | callable | kernel function (r, h)
-        
+
         @param eos | EquationOfState | equation of state object.
-        
-        
+
+
         Outputs
         -------
-        
+
         SPHDataset.densities, SPHDataset.hsml, SPHDataset.u, SPHDataset.pressure.
         """
-        
+
         self.x = x
         self.y = y
         self.z = z
         self.m = m
-        
+
         self.eta = eta
         self.h_init = h_init
         self.kernel = kernel
         self.eos = eos
-        
+
         self.hsml = np.ones_like(self.x) * self.h_init
-        
+
         print("Running root-finding for h")
         self.update_h()
-        
+
         return
-    
-    
+
+
     def calculate_r(self, x: float, y: float, z: float) -> np.ndarray:
         """
         Calculates an n long array of r displacements.
         """
-        
+
         dx = np.square(self.x - x)
         dy = np.square(self.y - y)
         dz = np.square(self.z - z)
-        
+
         dr = np.sqrt(dx + dy + dz)
-        
+
         del dx, dy, dz
-        
+
         return dr
-    
-    
+
+
     def calculate_kernels(self, dr: np.ndarray, h: float) -> np.ndarray:
         """
         Calculate the kernel values. Returns them.
         """
-        
+
         return self.kernel(dr, h)
 
 
@@ -233,14 +239,14 @@ class SPHDataset(object):
 
         return weighted.sum()
 
-    
+
     def get_density(self, h: np.ndarray) -> np.ndarray:
         """
         Gets the density by summing over kernels.
-        
+
         The smoothing lengths are passed as a parameter h for compatibility with the
         root finding algorithms.
-        
+
         Stores it in self.densities and returns it.
         """
 
@@ -259,40 +265,40 @@ class SPHDataset(object):
                 )
             )
         ])
-        
+
         return self.densities
-    
-    
+
+
     def constraint_equation(self, h: np.ndarray):
         """
         The constraint equation minimised to find h.
-        
+
         Returns the difference between the expected value and the 'true' value of
         the smoothing length from the measured density.
         """
-        
+
         density = self.get_density(h)
-        
+
         expected_h = self.eta * np.cbrt(self.m/density)
-        
+
         diff = expected_h - h
-        
+
         return diff
-    
-    
+
+
     def update_h(self) -> np.ndarray:
         """
         Updates the smoothing lengths.
         """
-        
+
         output = run_iterations(
             self.hsml,
             self.constraint_equation,
             0.1,
             30,
         )
-        
+
         self.hsml = output
-        
+
         return self.hsml
-        
+

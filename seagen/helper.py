@@ -1,5 +1,11 @@
 """
-Helper functions for the seagen project.
+This file is part of SEAGen.
+Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
+GNU General Public License http://www.gnu.org/licenses/
+
+Jacob Kegerreis and Josh Borrow
+
+Helper functions for SEAGen.
 
 Created by: Josh Borrow (joshua.borrow@durham.ac.uk) and Jacob Kegerreis
 """
