@@ -7,7 +7,17 @@ Jacob Kegerreis and Josh Borrow
 
 Helper functions for SEAGen.
 
-Created by: Josh Borrow (joshua.borrow@durham.ac.uk) and Jacob Kegerreis
+This file includes:
+    + check_valid_polar, to check polar coordinates
+    + polar_to_cartesian, to convert from polar to cartesian coordinates
+    + get_euler_rotation_matrix, to generate a rotation matrix from Euler angles
+    + get_shell_mass, to calculate the mass of a spherical shell
+    + get_weighted_mean, to get the mean of an array weighted by another array
+
+Notation:
+    + Arrays of dimension * are explicitly labelled as A*_name
+    + Particle is abbreviated as picle
+    + Spherical polars: theta = zenith (colatitude), phi = azimuth (longitude)
 """
 
 import numpy as np
@@ -106,14 +116,11 @@ def get_shell_mass(r_inner: float, r_outer: float, rho: float) -> float:
     return 4/3*np.pi * rho * (r_outer**3 - r_inner**3)
 
 
-def get_mass_weighted_mean(A1_mass: float, A1_value: float) -> float:
+def get_weighted_mean(A1_weight: float, A1_value: float) -> float:
     """
-    Calculate the mean of the value array weighted by the mass array.
-
-    @jacob -- is this actually a mean? At the moment this is just a 
-    weighted sum.
+    Calculate the mean of the value array weighted by the weights array.
     """
-    return np.sum(A1_mass * A1_value) / np.sum(A1_mass)
+    return np.sum(A1_weight * A1_value) / np.sum(A1_weight)
 
 
 
