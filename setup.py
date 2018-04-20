@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
     name='seagen',
     packages=['seagen'],
-    version='0.1',
+    version='0.2',
     description='Stretched Equal Area Generator',
     long_description=(
         'A python implementation of the stretched equal area (SEA) algorithm '
