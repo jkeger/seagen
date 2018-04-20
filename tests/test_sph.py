@@ -3,7 +3,6 @@ Tests for the SPH portion of the code.
 """
 
 import seagen.sph as sph
-from seagen.objects import GenIC
 from seagen.helper import polar_to_cartesian
 
 import matplotlib.pyplot as plt
@@ -62,37 +61,6 @@ def test_sph_hsml_grad_view():
     plt.savefig("test_sph_hsml_grad_view.png")
 
 
-def test_sphere():
-    """
-    Tests the generaiton of a full sphere of particles, and makes a plot.
-    Other tests using SPH density will check if it conforms to the 'actual'
-    density.
-    """
-    def density(r):
-        return 10
-
-    ics = GenIC(density, 0.1, (0.1, 10.))
-
-    x, y, z, = polar_to_cartesian(ics.r, ics.phi, ics.theta)
-
-    m = np.ones_like(x) * 0.1
-
-    eta = 1.238
-    hsml_init = 1.5
-    
-    eos = sph.EquationOfState
-    kernel = sph.cubic_spline
-    
-    SPHD = sph.SPHDataset(
-        x, y, z, 
-        m, eta, hsml_init, kernel, eos
-    )
-
-    fig, ax = plt.subplots(1, 1)
-
-    ax.scatter(ics.r, SPHD.density)
-
-    plt.savefig("test_sphere.png")
     
 if __name__ == "__main__":
     test_sph_linear_particles()
