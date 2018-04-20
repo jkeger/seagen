@@ -6,11 +6,12 @@ particle densities, e.g. for SPH initial conditions that precisely match an
 arbitrary density profile, as presented in Kegerreis et al. (2018), *in prep*.
 
 Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
+
 GNU General Public License http://www.gnu.org/licenses/
 
 Jacob Kegerreis and Josh Borrow
 
-Visit `https://github.com/jkeger/seagen` to download the code including example
+Visit https://github.com/jkeger/seagen to download the code including example
 scripts and for support.
 
 Or install the module from PyPI with `pip install seagen`.
@@ -29,7 +30,7 @@ Or install the module from PyPI with `pip install seagen`.
 + Significant minor features still needed, especially regarding user input and
   options control.
 + Lots of code tidying and documentation updating to do!
-+ Package registered on PyPI (version 0.1).
++ Package `seagen` registered on PyPI (version 0.2).
 
 ## Contributing
 
