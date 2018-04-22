@@ -17,10 +17,13 @@ from seagen import GenSphereIC
 from seagen.helper import polar_to_cartesian
 
 
-def test_gen_sphere_ic_simple():
+def test_gen_sphere_ic_simple(show=False):
     """
     Tests the generation of spherical initial conditions following a simple
     density profile.
+
+    @param show | (opt.) bool | Set True to display the test figure as well
+        as saving it. Default False to only save the figure.
     """
     print("=======================================================")
     print(" Testing sphere initial conditions generation (simple) ")
@@ -61,13 +64,17 @@ def test_gen_sphere_ic_simple():
     plt.savefig(filename)
     print("Saved figure to %s" % filename)
 
-    plt.show()
+    if show:
+        plt.show()
 
 
-def test_gen_sphere_ic_layers():
+def test_gen_sphere_ic_layers(show=False):
     """
     Tests the generation of spherical initial conditions following a density
     profile with multiple layers and density discontinuities.
+
+    @param show | (opt.) bool | Set True to display the test figure as well
+        as saving it. Default False to only save the figure.
     """
     print("================================================================")
     print(" Testing sphere initial conditions generation (multiple layers) ")
@@ -114,7 +121,8 @@ def test_gen_sphere_ic_layers():
     plt.savefig(filename)
     print("Saved figure to %s" % filename)
 
-    plt.show()
+    if show:
+        plt.show()
 
 
 if __name__ == "__main__":
