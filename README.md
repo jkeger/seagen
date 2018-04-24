@@ -1,6 +1,6 @@
 # SEAGen
 
-A python implementation of the stretched-equal-area (SEA) algorithm for
+A python implementation of the stretched equal area (SEA) algorithm for
 generating spherically symmetric arrangements of particles with accurate
 particle densities, e.g. for SPH initial conditions that precisely match an
 arbitrary density profile, as presented in Kegerreis et al. (2018), *in prep*.
@@ -30,7 +30,7 @@ Or install the module from PyPI with `pip install seagen`.
 + Significant minor features still needed, especially regarding user input and
   options control.
 + Lots of code tidying and documentation updating to do!
-+ Package `seagen` registered on PyPI (version 0.2).
++ Package `seagen` registered on PyPI (version 0.3).
 
 ## Contributing
 

@@ -2,12 +2,13 @@ from distutils.core import setup
 setup(
     name='seagen',
     packages=['seagen'],
-    version='0.2',
+    version='0.3',
     description='Stretched Equal Area Generator',
     long_description=(
         'A python implementation of the stretched equal area (SEA) algorithm '
         'for generating spherically symmetric arrangements of particles with '
-        'accurate particle densities, as presented in '
+        'accurate particle densities, e.g. for SPH initial conditions that '
+        'precisely match an arbitrary density profile, as presented in '
         'Kegerreis et al. (2018), in prep.'
         ),
     author='Jacob Kegerreis',
