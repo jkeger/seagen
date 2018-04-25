@@ -58,9 +58,9 @@ class GenShell(object):
         -------
 
         Particle position arrays:
-            GenShell.A1_x
-            GenShell.A1_y
-            GenShell.A1_z
+            GenShell.A1_x  or  .x
+            GenShell.A1_y  or  .y
+            GenShell.A1_z  or  .z
 
         (Spherical polar coordinates are used internally but do not have the
         final rotation applied to them.)
@@ -379,6 +379,18 @@ class GenShell(object):
         return
 
 
+    # Aliases for the main outputs without my array notation
+    @property
+    def x(self):
+        return self.A1_x
+    @property
+    def y(self):
+        return self.A1_y
+    @property
+    def z(self):
+        return self.A1_z
+
+
 class GenSphereIC(object):
     """
     Generate particle initial conditions with the SEA method and nested shells,
@@ -425,6 +437,8 @@ class GenSphereIC(object):
         -------
 
         GenSphereIC.A1_x, A1_y, A1_z, A1_r, A1_m, A1_rho, A1_h, A1_u, A1_mat
+
+        These can all be accessed without the A1_ prefix, e.g. GenSphereIC.x
 
         Arrays of the positions, radii, masses, densities, SPH smoothing
         lengths, specific internal energies, and material identifiers of every
@@ -992,6 +1006,34 @@ class GenSphereIC(object):
         return r_outer
 
 
+    # Aliases for the main outputs without my array notation
+    @property
+    def x(self):
+        return self.A1_x
+    @property
+    def y(self):
+        return self.A1_y
+    @property
+    def z(self):
+        return self.A1_z
+    @property
+    def r(self):
+        return self.A1_r
+    @property
+    def m(self):
+        return self.A1_m
+    @property
+    def rho(self):
+        return self.A1_rho
+    @property
+    def h(self):
+        return self.A1_h
+    @property
+    def u(self):
+        return self.A1_u
+    @property
+    def mat(self):
+        return self.A1_mat
 
 
 
