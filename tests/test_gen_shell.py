@@ -18,12 +18,17 @@ from seagen.helper import polar_to_cartesian
 deg_to_rad  = np.pi/180
 
 
-def test_gen_shell(N=100):
+def test_gen_shell(N=100, show=False):
     """
     Test the generation of a single spherical shell of N particles.
 
     Note: Matplotlib's 3D is not always great and sometimes some particles can
         go invisible depending on the view angle!
+
+    @param N | (opt.) int | The number of particles to arrange in a shell.
+
+    @param show | (opt.) bool | Set True to display the test figure as well
+        as saving it. Default False to only save the figure.
     """
     print("========================================================")
     print(" Testing single shell generation with N = %d particles" % N)
@@ -98,7 +103,8 @@ def test_gen_shell(N=100):
     plt.savefig(filename)
     print("Saved figure to %s" % filename)
 
-    plt.show()
+    if show:
+        plt.show()
 
 
 if __name__ == "__main__":
