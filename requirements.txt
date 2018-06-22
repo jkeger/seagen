@@ -1,6 +1,0 @@
-tqdm
-matplotlib
-scipy
-numpy
-typing
-numba
