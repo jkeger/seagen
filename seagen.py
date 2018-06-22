@@ -1,17 +1,15 @@
 """ SEAGen
 
-    Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
-
     A python implementation of the stretched equal area (SEA) algorithm for
     generating spherically symmetric arrangements of particles with accurate
     particle densities, e.g. for SPH initial conditions that precisely match an
-    arbitrary density profile.
+    arbitrary density profile (Kegerreis et al. (2018), in prep.).
 
     See README.md and https://github.com/jkeger/seagen for more information.
 
-    GNU General Public License, see LICENSE.txt.
+    Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
 
-    As presented in Kegerreis et al. (2018), in prep.
+    GNU General Public License, see LICENSE.txt.
 
     See the __init__() doc strings for the GenShell and GenSphere classes for
     the main documentation details, and examples.py for example uses.
@@ -136,7 +134,7 @@ class GenShell(object):
                     Default True. Set False to not randomly rotate the sphere of
                     particles after their intial placement.
 
-            Output attrs:
+            Output attrs: (Also accessable without the A1_ prefix)
                 A1_x, A1_y, A1_z ([float])
                     Particle cartesian position arrays.
 
@@ -601,6 +599,18 @@ class GenShell(object):
         return
 
 
+    # Aliases for the main outputs without my array notation
+    @property
+    def x(self):
+        return self.A1_x
+    @property
+    def y(self):
+        return self.A1_y
+    @property
+    def z(self):
+        return self.A1_z
+
+
 class GenSphere(object):
     """ Generate particle initial conditions with the SEA method and nested
         shells, following a density profile.
@@ -647,7 +657,7 @@ class GenSphere(object):
                     2       Extra
                     3       Debug
 
-            Output attrs:
+            Output attrs: (Also accessable without the A1_ prefix)
                 A1_x, A1_y, A1_z, A1_r ([float])
                     The arrays of the particles' cartesian coordinates and
                     radii.
@@ -1506,6 +1516,40 @@ class GenSphere(object):
                 exec("self.A1_%s = np.hstack(self.A1_%s)" % (array, array))
 
         return
+
+
+    # Aliases for the main outputs without my array notation
+    @property
+    def x(self):
+        return self.A1_x
+    @property
+    def y(self):
+        return self.A1_y
+    @property
+    def z(self):
+        return self.A1_z
+    @property
+    def r(self):
+        return self.A1_r
+    @property
+    def m(self):
+        return self.A1_m
+    @property
+    def rho(self):
+        return self.A1_rho
+    @property
+    def mat(self):
+        return self.A1_mat
+    @property
+    def u(self):
+        return self.A1_u
+    @property
+    def T(self):
+        return self.A1_T
+    @property
+    def P(self):
+        return self.A1_P
+
 
 
 # //////////////////////////////////////////////////////////////////////////// #
