@@ -24,7 +24,7 @@ Contents
 --------
 + `seagen.py` The main program functions. Also a few helper functions and
     example tests.
-+ `setup.py`, `__init__.py` Python package files.
++ `setup.py`, `__init__.py`, `MANIFEST.in` Python package files.
 + `LICENSE.txt` GNU general public license.
 
 
