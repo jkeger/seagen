@@ -1,8 +1,2 @@
+
 *.pyc
-.cache/*
-*.png
-*.ipynb_checkpoints/
-.pytest_cache/*
-seaenv/*
-dist/*
-README_jkeger
