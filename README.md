@@ -28,6 +28,35 @@ Contents
 + `LICENSE.txt` GNU general public license v3.
 
 
+Minimal Usage
+-------------
++ See the doc strings in `seagen.py` for all the details.
++ Create a single shell of particles and print their positions:
+    ```
+    import seagen
+    N = 100
+    r = 1
+
+    particles = seagen.GenShell(N, r)
+
+    print(particles.x, particles.y, particles.z)
+    ```
++ Create a full sphere of particles on an arbitrary density profile:
+    ```
+    import seagen
+    N = 100000
+    radii = [ ... ]
+    densities = [ ... ]
+    materials = [ ... ]
+
+    particles = GenSphere(N, radii, densities, materials)
+
+    print(particles.x, particles.y, particles.z, particles.m, particles.rho,
+          particles.mat)
+    ```
++ See `examples.py` for other working examples.
+
+
 Notation etc.
 -------------
 + PEP8 is followed in most cases apart from some indentation alignment.
