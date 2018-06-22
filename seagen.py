@@ -14,24 +14,20 @@
     As presented in Kegerreis et al. (2018), in prep.
 
     See the __init__() doc strings for the GenShell and GenSphere classes for
-    the main documentation details.
+    the main documentation details, and examples.py for example uses.
 """
 # ========
 # Contents:
 # ========
 #   I   Functions
 #   II  Classes
-#   III Example Tests
-#   X   Main
+#   III Main
 
 from __future__ import division
 from __future__ import print_function
 
 import numpy as np
 import sys
-import matplotlib
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 # ========
 # Constants
@@ -1513,238 +1509,11 @@ class GenSphere(object):
 
 
 # //////////////////////////////////////////////////////////////////////////// #
-#                               III. Example Tests                             #
-# //////////////////////////////////////////////////////////////////////////// #
-
-def test_gen_shell(N):
-    """ Test the generation of a single spherical shell of particles.
-
-        Show a 3D figure of the particles.
-
-        Args:
-            N (int)
-                The number of particles to arrange.
-
-        Note:
-            Matplotlib's 3D is not always great and sometimes some particles
-            can go invisible depending on the view angle!
-    """
-    print("========================================================")
-    print(" Testing single shell generation with N = %d particles" % N)
-    print("========================================================")
-
-    # Generate the particles
-    particles   = GenShell(N, 1, do_stretch=True, do_rotate=False)
-
-    # Plotting settings
-    font_size   = 20
-    params      = {
-        'backend'           : 'ps',
-        'axes.labelsize'    : font_size,
-        'axes.titlesize'    : font_size,
-        'font.size'         : font_size,
-        'xtick.labelsize'   : font_size,
-        'ytick.labelsize'   : font_size,
-        'text.usetex'       : True,
-        'figure.figsize'    : [9, 9],
-        'font.family'       : 'serif',
-        }
-    matplotlib.rcParams.update(params)
-
-    # Figure
-    ax_lim  = 1                     # axis limits (in +/- x, y, z)
-    elev    = 35                    # 3D viewpoint
-    azim    = 0
-
-    fig = plt.figure()
-    ax  = fig.add_subplot(1, 1, 1, aspect='equal', projection="3d")
-
-    # Dense longitude lines since plotting an actual sphere surface looks awful
-    for phi in np.arange(0, 360, 1):
-        A1_r        = np.ones(100)
-        A1_theta    = np.linspace(0, np.pi, 100)
-        A1_phi      = np.ones(100) * phi * deg_to_rad
-
-        A1_x, A1_y, A1_z    = polar_to_cartesian(A1_r, A1_theta, A1_phi)
-
-        plt.plot(A1_x, A1_y, A1_z, c='0.8')
-
-    # Plot particles with alternating collar colours
-    A1_z_collar = np.unique(particles.A1_z)
-    for i_col in range(len(A1_z_collar)):
-        sel_col = np.where(abs(particles.A1_z - A1_z_collar[i_col]) < 0.001)[0]
-        if i_col%2 == 0:
-            colour  = 'dodgerblue'
-        else:
-            colour  = 'blueviolet'
-
-        ax.scatter(
-            particles.A1_x[sel_col], particles.A1_y[sel_col],
-            particles.A1_z[sel_col], c=colour, marker='o', s=100
-            )
-
-        # Latitude lines
-        A1_r        = np.ones(100)
-        A1_theta    = np.ones(100) * np.arccos(A1_z_collar[i_col])
-        A1_phi      = np.linspace(0, 2*np.pi, 101)[:-1]
-
-        A1_x, A1_y, A1_z    = polar_to_cartesian(A1_r, A1_theta, A1_phi)
-
-        plt.plot(A1_x, A1_y, A1_z, c=colour, alpha=0.2)
-
-    # Equator
-    A1_r        = np.ones(100)
-    A1_theta    = np.ones(100) * 90 * deg_to_rad
-    A1_phi      = np.linspace(0, 2*np.pi, 101)[:-1]
-
-    A1_x, A1_y, A1_z    = polar_to_cartesian(A1_r, A1_theta, A1_phi)
-    plt.plot(A1_x, A1_y, A1_z, c='k', ls='--', alpha=0.3)
-
-    # A1_z axis
-    plt.plot([0, 0], [0, 0], [-1.2, -1.0], c='k', ls='-', alpha=0.8)
-    plt.plot([0, 0], [0, 0], [-1.0, 1.0], c='k', ls='-', alpha=0.3)
-    plt.plot([0, 0], [0, 0], [1.0, 1.2], c='k', ls='-', alpha=0.8)
-
-    # Axes etc.
-    ax.view_init(elev=elev, azim=azim)
-    ax._axis3don    = False
-
-    ax.set_xlim(-ax_lim, ax_lim)
-    ax.set_ylim(-ax_lim, ax_lim)
-    ax.set_zlim(-ax_lim, ax_lim)
-
-    plt.tight_layout()
-
-    plt.show()
-
-
-def test_gen_sphere_ic_simple():
-    """ Test the generation of spherical initial conditions following a simple
-        density profile.
-
-        Shows and saves a figure of the particles on the radial profile.
-    """
-    print("=======================================================")
-    print(" Testing sphere initial conditions generation (simple) ")
-    print("=======================================================")
-
-    N_picle = 1e4
-
-    # Profiles
-    N_prof      = int(1e6)
-    A1_r_prof   = np.arange(1, N_prof + 1) * 1/N_prof
-    A1_rho_prof = 3 - 2*A1_r_prof**2
-    A1_mat_prof = np.zeros(N_prof)
-
-    # Generate particles
-    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, A1_mat_prof,
-                              verb=2)
-
-    # Plotting settings
-    font_size   = 20
-    params      = {
-        'backend'           : 'ps',
-        'axes.labelsize'    : font_size,
-        'axes.titlesize'    : font_size,
-        'font.size'         : font_size,
-        'xtick.labelsize'   : font_size,
-        'ytick.labelsize'   : font_size,
-        'text.usetex'       : True,
-        'figure.figsize'    : [9, 9],
-        'font.family'       : 'serif',
-        }
-    matplotlib.rcParams.update(params)
-
-    # Figure
-    plt.figure()
-
-    plt.plot(A1_r_prof, A1_rho_prof)
-
-    plt.scatter(particles.A1_r, particles.A1_rho)
-
-    plt.xlabel("Radius")
-    plt.ylabel("Density")
-
-    plt.xlim(0, None)
-    plt.ylim(0, None)
-
-    plt.title("Test Sphere Initial Conditions (Simple)")
-
-    plt.tight_layout()
-
-    plt.show()
-
-
-def test_gen_sphere_ic_layers():
-    """ Test the generation of spherical initial conditions following a density
-        profile with multiple layers and density discontinuities.
-
-        Shows and saves a figure of the particles on the radial profile.
-    """
-    print("================================================================")
-    print(" Testing sphere initial conditions generation (multiple layers) ")
-    print("================================================================")
-
-    N_picle = 1e4
-
-    # Profiles
-    N_prof      = int(1e6)
-    A1_r_prof   = np.arange(1, N_prof + 1) * 1/N_prof
-    A1_rho_prof = 3 - 2*A1_r_prof**2
-    # Separate density profile into three layers of different materials
-    A1_rho_prof *= np.array(
-        [1]*int(N_prof/4) + [0.7]*int(N_prof/2) + [0.3]*int(N_prof/4))
-    A1_mat_prof = np.array(
-        [0]*int(N_prof/4) + [1]*int(N_prof/2) + [2]*int(N_prof/4))
-
-    # Generate particles
-    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, A1_mat_prof,
-                              verb=2)
-
-    # Plotting settings
-    font_size   = 20
-    params      = {
-        'backend'           : 'ps',
-        'axes.labelsize'    : font_size,
-        'axes.titlesize'    : font_size,
-        'font.size'         : font_size,
-        'xtick.labelsize'   : font_size,
-        'ytick.labelsize'   : font_size,
-        'text.usetex'       : True,
-        'figure.figsize'    : [9, 9],
-        'font.family'       : 'serif',
-        }
-    matplotlib.rcParams.update(params)
-
-    # Figure
-    plt.figure()
-
-    plt.plot(A1_r_prof, A1_rho_prof)
-
-    plt.scatter(particles.A1_r, particles.A1_rho)
-
-    plt.xlabel("Radius")
-    plt.ylabel("Density")
-
-    plt.xlim(0, None)
-    plt.ylim(0, None)
-
-    plt.title("Test Sphere Initial Conditions (Multi-Layer)")
-
-    plt.tight_layout()
-
-    plt.show()
-
-
-# //////////////////////////////////////////////////////////////////////////// #
-#                               X. Main                                        #
+#                               III. Main                                      #
 # //////////////////////////////////////////////////////////////////////////// #
 
 if __name__ == '__main__':
-    # Run the examples
-    test_gen_shell(42)
-    test_gen_sphere_ic_simple()
-    test_gen_sphere_ic_layers()
+    print(banner)
 
 
 

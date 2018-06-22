@@ -22,10 +22,10 @@ Pull requests are more than welcome.
 
 Contents
 --------
-+ `seagen.py` The main program functions. Also a few helper functions and
-    example tests.
++ `seagen.py` The main program classes and functions.
++ `examples.py` Examples to demonstrate how to use the SEAGen module.
 + `setup.py`, `__init__.py`, `MANIFEST.in` Python package files.
-+ `LICENSE.txt` GNU general public license.
++ `LICENSE.txt` GNU general public license v3.
 
 
 Notation etc.

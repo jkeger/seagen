@@ -1,2 +1,4 @@
 include README.md
 include LICENSE.txt
+include seagen.py
+include examples.py
