@@ -7,10 +7,14 @@
     particle densities, e.g. for SPH initial conditions that precisely match an
     arbitrary density profile.
 
-    See the __init__() doc strings for the GenShell and GenSphereIC classes for
-    the main documentation details.
+    See README.md and https://github.com/jkeger/seagen for more information.
+
+    GNU General Public License, see LICENSE.txt.
 
     As presented in Kegerreis et al. (2018), in prep.
+
+    See the __init__() doc strings for the GenShell and GenSphere classes for
+    the main documentation details.
 """
 # ========
 # Contents:
@@ -601,7 +605,7 @@ class GenShell(object):
         return
 
 
-class GenSphereIC(object):
+class GenSphere(object):
     """ Generate particle initial conditions with the SEA method and nested
         shells, following a density profile.
 
@@ -1512,7 +1516,7 @@ class GenSphereIC(object):
 #                               III. Example Tests                             #
 # //////////////////////////////////////////////////////////////////////////// #
 
-def test_gen_shell(N=100):
+def test_gen_shell(N):
     """ Test the generation of a single spherical shell of particles.
 
         Show a 3D figure of the particles.
@@ -1532,12 +1536,27 @@ def test_gen_shell(N=100):
     # Generate the particles
     particles   = GenShell(N, 1, do_stretch=True, do_rotate=False)
 
+    # Plotting settings
+    font_size   = 20
+    params      = {
+        'backend'           : 'ps',
+        'axes.labelsize'    : font_size,
+        'axes.titlesize'    : font_size,
+        'font.size'         : font_size,
+        'xtick.labelsize'   : font_size,
+        'ytick.labelsize'   : font_size,
+        'text.usetex'       : True,
+        'figure.figsize'    : [9, 9],
+        'font.family'       : 'serif',
+        }
+    matplotlib.rcParams.update(params)
+
     # Figure
     ax_lim  = 1                     # axis limits (in +/- x, y, z)
     elev    = 35                    # 3D viewpoint
     azim    = 0
 
-    fig = plt.figure(figsize=(7, 7))
+    fig = plt.figure()
     ax  = fig.add_subplot(1, 1, 1, aspect='equal', projection="3d")
 
     # Dense longitude lines since plotting an actual sphere surface looks awful
@@ -1618,11 +1637,26 @@ def test_gen_sphere_ic_simple():
     A1_mat_prof = np.zeros(N_prof)
 
     # Generate particles
-    particles   = GenSphereIC(N_picle, A1_r_prof, A1_rho_prof, A1_mat_prof,
+    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, A1_mat_prof,
                               verb=2)
 
+    # Plotting settings
+    font_size   = 20
+    params      = {
+        'backend'           : 'ps',
+        'axes.labelsize'    : font_size,
+        'axes.titlesize'    : font_size,
+        'font.size'         : font_size,
+        'xtick.labelsize'   : font_size,
+        'ytick.labelsize'   : font_size,
+        'text.usetex'       : True,
+        'figure.figsize'    : [9, 9],
+        'font.family'       : 'serif',
+        }
+    matplotlib.rcParams.update(params)
+
     # Figure
-    plt.figure(figsize=(7, 7))
+    plt.figure()
 
     plt.plot(A1_r_prof, A1_rho_prof)
 
@@ -1664,11 +1698,26 @@ def test_gen_sphere_ic_layers():
         [0]*int(N_prof/4) + [1]*int(N_prof/2) + [2]*int(N_prof/4))
 
     # Generate particles
-    particles   = GenSphereIC(N_picle, A1_r_prof, A1_rho_prof, A1_mat_prof,
+    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, A1_mat_prof,
                               verb=2)
 
+    # Plotting settings
+    font_size   = 20
+    params      = {
+        'backend'           : 'ps',
+        'axes.labelsize'    : font_size,
+        'axes.titlesize'    : font_size,
+        'font.size'         : font_size,
+        'xtick.labelsize'   : font_size,
+        'ytick.labelsize'   : font_size,
+        'text.usetex'       : True,
+        'figure.figsize'    : [9, 9],
+        'font.family'       : 'serif',
+        }
+    matplotlib.rcParams.update(params)
+
     # Figure
-    plt.figure(figsize=(7, 7))
+    plt.figure()
 
     plt.plot(A1_r_prof, A1_rho_prof)
 
@@ -1692,10 +1741,10 @@ def test_gen_sphere_ic_layers():
 # //////////////////////////////////////////////////////////////////////////// #
 
 if __name__ == '__main__':
-
-#    test_gen_shell(N=42)
+    # Run the examples
+    test_gen_shell(42)
+    test_gen_sphere_ic_simple()
     test_gen_sphere_ic_layers()
-
 
 
 
