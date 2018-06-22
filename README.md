@@ -19,3 +19,22 @@ do contact the author at the email address above!
 
 Pull requests are more than welcome.
 
+
+Contents
+--------
++ `seagen.py` The main program functions. Also a few helper functions and
+    example tests.
++ `LICENSE.txt` GNU general public license.
+
+
+Notation etc.
+-------------
++ PEP8 is followed in most cases apart from some indentation alignment.
++ Arrays are explicitly labelled with a prefix `A1_`, or `An_` for an
+    `n`-dimensional array.
++ Particle is abbreviated to `picle`.
++ `' '` is used for keyword arguments, `" "` for other strings.
+
+
+
+
