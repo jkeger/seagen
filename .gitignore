@@ -1,3 +1,5 @@
 *.pyc
 dist
-*.egg-info
+build
+seagen.egg-info
+env*
