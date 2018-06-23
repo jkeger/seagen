@@ -36,8 +36,6 @@ banner  = (
     "#  \n"
     "#  SEAGen \n"
     "#  \n"
-    "#  Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk) \n"
-    "#  \n"
     "#  https://github.com/jkeger/seagen \n"
     "#  \n"
     "#  Kegerreis et al. (2018), in prep \n"
@@ -115,6 +113,16 @@ def get_weighted_mean(A1_weight, A1_value):
 class GenShell(object):
     """ Generate a single spherical shell of points ("particles") at a fixed
         radius, using the SEA method described in Kegerreis et al. 2018 ("K18").
+
+        See __init__()'s documentation for more details.
+
+        Basic Usage:
+            e.g. Create a single shell of particles and print their positions:
+                >>> import seagen
+                >>> N = 100
+                >>> r = 1
+                >>> particles = seagen.GenShell(N, r)
+                >>> print(particles.x, particles.y, particles.z)
     """
     def __init__(self, N, r, do_stretch=True, do_rotate=True):
         """ Generate a single spherical shell of particles.
@@ -616,6 +624,20 @@ class GenSphere(object):
         shells, following a density profile.
 
         See __init__()'s documentation for more details.
+
+        Basic Usage:
+            e.g. Create a full sphere of particles on an arbitrary density
+            profile and print their positions, masses, densities, and (optional)
+            material IDs:
+                >>> import seagen
+                >>> import numpy as np
+                >>> N = 100000
+                >>> radii = np.arange(0.01, 10, 0.01)
+                >>> densities = np.ones(len(radii))     # e.g. constant density
+                >>> materials = np.zeros(len(radii))
+                >>> particles = seagen.GenSphere(N, radii, densities, materials)
+                >>> print(particles.x, particles.y, particles.z, particles.m,
+                ...       particles.rho, particles.mat)
     """
     def __init__(self, N_picle_des, A1_r_prof, A1_rho_prof, A1_mat_prof,
                  A1_u_prof=None, A1_T_prof=None, A1_P_prof=None,
@@ -1549,7 +1571,6 @@ class GenSphere(object):
     @property
     def P(self):
         return self.A1_P
-
 
 
 # //////////////////////////////////////////////////////////////////////////// #

@@ -32,7 +32,7 @@ Basic Usage
 -----------
 + See the doc strings in `seagen.py` for all the details.
 + Create a single shell of particles and print their positions:
-    ```
+    ```python
     import seagen
     N = 100
     r = 1
@@ -43,12 +43,13 @@ Basic Usage
     ```
 + Create a full sphere of particles on an arbitrary density profile and print
     their positions, masses, densities, and (optional) material IDs:
-    ```
+    ```python
     import seagen
+    import numpy as np
     N = 100000
-    radii = [ ... ]
-    densities = [ ... ]
-    materials = [ ... ]
+    radii = np.arange(0.01, 10, 0.01)
+    densities = np.ones(len(radii))     # e.g. constant density
+    materials = np.zeros(len(radii))
 
     particles = seagen.GenSphere(N, radii, densities, materials)
 
