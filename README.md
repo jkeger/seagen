@@ -24,12 +24,12 @@ Contents
 --------
 + `seagen.py` The main program classes and functions.
 + `examples.py` Examples to demonstrate how to use the SEAGen module.
-+ `setup.py`, `__init__.py`, `MANIFEST.in` Python package files.
++ `setup.py`, `setup.cfg`, `__init__.py`, `MANIFEST.in` Python package files.
 + `LICENSE.txt` GNU general public license v3.
 
 
-Minimal Usage
--------------
+Basic Usage
+-----------
 + See the doc strings in `seagen.py` for all the details.
 + Create a single shell of particles and print their positions:
     ```
@@ -41,7 +41,8 @@ Minimal Usage
 
     print(particles.x, particles.y, particles.z)
     ```
-+ Create a full sphere of particles on an arbitrary density profile:
++ Create a full sphere of particles on an arbitrary density profile and print
+    their positions, masses, densities, and (optional) material IDs:
     ```
     import seagen
     N = 100000
@@ -49,7 +50,7 @@ Minimal Usage
     densities = [ ... ]
     materials = [ ... ]
 
-    particles = GenSphere(N, radii, densities, materials)
+    particles = seagen.GenSphere(N, radii, densities, materials)
 
     print(particles.x, particles.y, particles.z, particles.m, particles.rho,
           particles.mat)
@@ -57,13 +58,27 @@ Minimal Usage
 + See `examples.py` for other working examples.
 
 
+Installation
+------------
++ `PyPI`: Automatically install the package with `pip install seagen`, see
+    https://pypi.org/project/seagen/
++ Direct download: The single `seagen.py` file can be imported and used without
+    any extra installation, so you can just download this repository and place
+    the file in a local directory or wherever your python will look for modules.
+
+
+Requirements
+------------
++ Python 2 or 3 (tested with 2.7.13 and 3.6.0).
+
+
 Notation etc.
 -------------
 + PEP8 is followed in most cases apart from some indentation alignment.
 + Arrays are explicitly labelled with a prefix `A1_`, or `An_` for an
     `n`-dimensional array.
-+ Particle is abbreviated to `picle`.
 + `' '` is used for keyword arguments, `" "` for other strings.
++ Particle is abbreviated to `picle`.
 
 
 
