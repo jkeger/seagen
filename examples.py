@@ -8,7 +8,7 @@
 
     See README.md and https://github.com/jkeger/seagen for more information.
 
-    GNU General Public License, see LICENSE.txt.
+    GNU General Public License v3+, see LICENSE.txt.
 
     To run all the examples and display the figures, call:
         $  python  examples.py
@@ -140,11 +140,9 @@ def test_gen_sphere_simple():
     N_prof      = int(1e6)
     A1_r_prof   = np.arange(1, N_prof + 1) * 1/N_prof
     A1_rho_prof = 3 - 2*A1_r_prof**2
-    A1_mat_prof = np.zeros(N_prof)
 
     # Generate particles
-    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, A1_mat_prof,
-                            verb=2)
+    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, verb=2)
 
     # Figure
     plt.figure(figsize=(7, 7))
@@ -168,9 +166,10 @@ def test_gen_sphere_simple():
 
 def test_gen_sphere_layers():
     """ Generate spherical particle positions from a density profile with
-        multiple layers and density discontinuities.
+        multiple layers, density discontinuities, and a temperature profile.
 
-        Show a figure of the particles on the radial density profile.
+        Show a figure of the particles on the radial density and temperature
+        profiles.
     """
     print("\n==============================================================="
           "\n SEAGen sphere particles generation with a multi-layer profile "
@@ -181,29 +180,37 @@ def test_gen_sphere_layers():
     # Profiles
     N_prof      = int(1e6)
     A1_r_prof   = np.arange(1, N_prof + 1) * 1/N_prof
+    # A density profile with three layers of different materials
     A1_rho_prof = 3 - 2*A1_r_prof**2
-    # Separate density profile into three layers of different materials
     A1_rho_prof *= np.array(
         [1]*int(N_prof/4) + [0.7]*int(N_prof/2) + [0.3]*int(N_prof/4))
     A1_mat_prof = np.array(
         [0]*int(N_prof/4) + [1]*int(N_prof/2) + [2]*int(N_prof/4))
+    A1_T_prof   = 500 - 200*A1_r_prof**2
 
     # Generate particles
-    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, A1_mat_prof,
+    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof,
+                            A1_mat_prof=A1_mat_prof, A1_T_prof=A1_T_prof,
                             verb=2)
 
     # Figure
     plt.figure(figsize=(7, 7))
+    ax1 = plt.gca()
+    ax2 = ax1.twinx()
 
-    plt.plot(A1_r_prof, A1_rho_prof)
+    ax1.plot(A1_r_prof, A1_rho_prof, c='b')
+    ax1.scatter(particles.A1_r, particles.A1_rho, c='b')
 
-    plt.scatter(particles.A1_r, particles.A1_rho)
+    ax2.plot(A1_r_prof, A1_T_prof, c='r')
+    ax2.scatter(particles.A1_r, particles.A1_T, c='r')
 
-    plt.xlabel("Radius")
-    plt.ylabel("Density")
+    ax1.set_xlabel("Radius")
+    ax1.set_ylabel("Density")
+    ax2.set_ylabel("Temperature")
 
-    plt.xlim(0, None)
-    plt.ylim(0, None)
+    ax1.set_xlim(0, None)
+    ax1.set_ylim(0, None)
+    ax2.set_ylim(0, None)
 
     plt.title("SEAGen Sphere Particles (Multi-Layer Profile)")
 

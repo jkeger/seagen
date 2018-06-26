@@ -9,7 +9,7 @@
 
     Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
 
-    GNU General Public License, see LICENSE.txt.
+    GNU General Public License v3+, see LICENSE.txt.
 
     See the __init__() doc strings for the GenShell and GenSphere classes for
     the main documentation details, and examples.py for example uses.
@@ -626,20 +626,17 @@ class GenSphere(object):
         See __init__()'s documentation for more details.
 
         Basic Usage:
-            e.g. Create a full sphere of particles on an arbitrary density
-            profile and print their positions, masses, densities, and (optional)
-            material IDs:
+            e.g. Create a full sphere of particles on a simple density profile
+            and print their positions and masses:
                 >>> import seagen
                 >>> import numpy as np
                 >>> N = 100000
                 >>> radii = np.arange(0.01, 10, 0.01)
                 >>> densities = np.ones(len(radii))     # e.g. constant density
-                >>> materials = np.zeros(len(radii))
-                >>> particles = seagen.GenSphere(N, radii, densities, materials)
-                >>> print(particles.x, particles.y, particles.z, particles.m,
-                ...       particles.rho, particles.mat)
+                >>> particles = seagen.GenSphere(N, radii, densities)
+                >>> print(particles.x, particles.y, particles.z, particles.m)
     """
-    def __init__(self, N_picle_des, A1_r_prof, A1_rho_prof, A1_mat_prof,
+    def __init__(self, N_picle_des, A1_r_prof, A1_rho_prof, A1_mat_prof=None,
                  A1_u_prof=None, A1_T_prof=None, A1_P_prof=None,
                  do_stretch=True, verb=1):
         """ Generate nested spherical shells of particles to match radial
@@ -659,9 +656,9 @@ class GenSphere(object):
                 A1_rho_prof ([float])
                     The array of densities at the profile radii.
 
-                A1_mat_prof ([int])
-                    The array of material identifiers at the profile radii. Set
-                    all to zero to effectively ignore them.
+                A1_mat_prof (opt. [int])
+                    The array of material identifiers at the profile radii. If
+                    not provided, then default to all zeros.
 
                 A1_u_prof A1_T_prof A1_P_prof (opt. [float])
                     Optional arrays of other values at the profile radii:
@@ -744,6 +741,10 @@ class GenSphere(object):
 
         self.N_prof         = len(self.A1_r_prof)
         self.N_shell_tot    = 0
+
+        # Default material IDs if not provided
+        if self.A1_mat_prof is None:
+            self.A1_mat_prof    = np.zeros(self.N_prof)
 
         # Values for each shell
         A1_N_shell          = []

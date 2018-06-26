@@ -25,7 +25,7 @@ Contents
 + `seagen.py` The main program classes and functions.
 + `examples.py` Examples to demonstrate how to use the SEAGen module.
 + `setup.py`, `setup.cfg`, `__init__.py`, `MANIFEST.in` Python package files.
-+ `LICENSE.txt` GNU general public license v3.
++ `LICENSE.txt` GNU general public license v3+.
 
 
 Basic Usage
@@ -41,22 +41,21 @@ Basic Usage
 
     print(particles.x, particles.y, particles.z)
     ```
-+ Create a full sphere of particles on an arbitrary density profile and print
-    their positions, masses, densities, and (optional) material IDs:
++ Create a full sphere of particles on a simple density profile and print their
+    positions and masses:
     ```python
     import seagen
     import numpy as np
     N = 100000
     radii = np.arange(0.01, 10, 0.01)
     densities = np.ones(len(radii))     # e.g. constant density
-    materials = np.zeros(len(radii))
 
-    particles = seagen.GenSphere(N, radii, densities, materials)
+    particles = seagen.GenSphere(N, radii, densities)
 
-    print(particles.x, particles.y, particles.z, particles.m, particles.rho,
-          particles.mat)
+    print(particles.x, particles.y, particles.z, particles.m)
     ```
-+ See `examples.py` for other working examples.
++ See `examples.py` for other working examples, e.g. an arbitrary density
+    profile with multiple layers and extra temperature information.
 
 
 Installation
