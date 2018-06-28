@@ -6,14 +6,14 @@ with open("README.md", "r") as f:
 setuptools.setup(
     name="seagen",
     packages=setuptools.find_packages(),
-    version="1.0.1",
+    version="1.1.0",
     description="Stretched Equal Area Generator",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Jacob Kegerreis",
     author_email="jacob.kegerreis@durham.ac.uk",
     url="https://github.com/jkeger/seagen",
-    download_url="https://github.com/jkeger/seagen/archive/1.0.1.tar.gz",
+    download_url="https://github.com/jkeger/seagen/archive/1.1.0.tar.gz",
     license="GNU GPLv3+",
     py_modules=["seagen"],
     classifiers=[
