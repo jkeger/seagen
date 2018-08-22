@@ -1158,7 +1158,7 @@ class GenSphere(object):
                 r_half  = self.A1_r_prof[idx_outer] / 2
                 r_mw    = get_weighted_mean(A1_m_prof_shell,
                                             self.A1_r_prof[idx_inner:idx_outer])
-                A1_r_shell.append(0.9*r_half + 0.1*r_mw)
+                A1_r_shell.append(0.9*r_half + 0.1*r_mw) 
             else:
                 r_half  = (self.A1_r_prof[idx_inner]
                            + self.A1_r_prof[idx_outer]) / 2
@@ -1217,6 +1217,71 @@ class GenSphere(object):
                 print("  No extra values.")
 
             print("> Done shell particle values!")
+
+        
+        
+        ### Manually tweak shells near boundaries
+        if not True:        
+            # Layer 1 outermost shells
+            i=10
+            f=-0.005
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+            i=11
+            f=-0.005
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+            i=11
+            f=-0.01
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+            i=12
+            f=-0.02
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+            i=13
+            f=-0.025
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+            i=14
+            f=-0.03
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])            
+            # ======== Layer 2 innermost shells
+            i=15
+            f=0.08
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            i=16
+            f=0.02
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])    
+            i=17
+            f=0.01
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            # Layer 2 outermost shells 
+            i=31
+            f=-0.01
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            i=32
+            f=-0.02
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            i=33
+            f=-0.0
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1]) 
+            # ======== Layer 3 innermost shells
+            i=34
+            f=0.35
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1]) 
+            i=35
+            f=0.20
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            i=36
+            f=0.25
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            # Layer 3 outermost shells 
+            i=37
+            f=-0.80
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1]) 
+            print("%d  %.3e -> %.3e  %d" % 
+                  (i, A1_r_shell[i], 
+                   A1_r_shell[i] + f * (A1_r_shell[i] - A1_r_shell[i-1]), 
+                   A1_mat_shell[i]))    
+        ###
+
+
 
         # ================
         # Generate the particles in each shell
