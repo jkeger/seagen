@@ -1030,7 +1030,7 @@ class GenSphere(object):
                 # ========
                 # Find the shells that fit in this layer
                 # ========
-                N_shell = 0
+                N_shell = 1
                 while idx_outer < idx_bound:
                     # Calculate the shell width from the profile density
                     # relative to the first shell in this layer
@@ -1153,18 +1153,11 @@ class GenSphere(object):
             A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
 
             # Radius (mean of half-way and mass-weighted radii)
-            if i_shell == 0:
-                # Empircally, the tetrahedron particles are better near r_half
-                r_half  = self.A1_r_prof[idx_outer] / 2
-                r_mw    = get_weighted_mean(A1_m_prof_shell,
-                                            self.A1_r_prof[idx_inner:idx_outer])
-                A1_r_shell.append(0.9*r_half + 0.1*r_mw) 
-            else:
-                r_half  = (self.A1_r_prof[idx_inner]
-                           + self.A1_r_prof[idx_outer]) / 2
-                r_mw    = get_weighted_mean(A1_m_prof_shell,
-                                            self.A1_r_prof[idx_inner:idx_outer])
-                A1_r_shell.append((r_half + r_mw) / 2)
+            r_half  = (self.A1_r_prof[idx_inner]
+                       + self.A1_r_prof[idx_outer]) / 2
+            r_mw    = get_weighted_mean(A1_m_prof_shell,
+                                        self.A1_r_prof[idx_inner:idx_outer])
+            A1_r_shell.append((r_half + r_mw) / 2)
 
             # Other properties
             A1_rho_shell.append(get_weighted_mean(
@@ -1222,6 +1215,7 @@ class GenSphere(object):
         
         ### Manually tweak shells near boundaries
         if not True:        
+            # pU_m2_1e5
             # Layer 1 outermost shells
             i=10
             f=-0.005
@@ -1275,7 +1269,7 @@ class GenSphere(object):
             i=37
             f=-0.80
             A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1]) 
-            print("%d  %.3e -> %.3e  %d" % 
+            print("### %d  %.3e -> %.3e  %d" % 
                   (i, A1_r_shell[i], 
                    A1_r_shell[i] + f * (A1_r_shell[i] - A1_r_shell[i-1]), 
                    A1_mat_shell[i]))    
@@ -1523,7 +1517,7 @@ class GenSphere(object):
                     The cartesian coordinates of the four vertices.
         """
         # Radius scale
-        r_scale = r / np.cbrt(3)
+        r_scale = r / np.sqrt(3)
         # Tetrahedron vertex coordinates
         A1_x    = np.array([1, 1, -1, -1]) * r_scale
         A1_y    = np.array([1, -1, 1, -1]) * r_scale
@@ -1577,7 +1571,6 @@ class GenSphere(object):
             self.A1_x.append(A1_x)
             self.A1_y.append(A1_y)
             self.A1_z.append(A1_z)
-
         else:
             shell = GenShell(N, r, do_stretch=self.do_stretch)
 
