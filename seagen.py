@@ -543,10 +543,7 @@ class GenShell(object):
         elif N == 31:
             a   = 0.27
         elif N == 28:
-            a   = 0.20  # 3.38-3.60
-#            a   = 0.22  # 3.37-3.62
-#            a   = 0.21  # 3.37-3.60
-#            a   = 0.19  # 3.37-3.61
+            a   = 0.20
         elif N == 27:
             a   = 0.19
         else:
@@ -1211,11 +1208,119 @@ class GenSphere(object):
 
             print("> Done shell particle values!")
 
-        
-        
-        ### Manually tweak shells near boundaries
-        if not True:        
-            # pU_m2_1e5
+
+
+        ###
+        # Manually tweak shell radii
+        # iU_m2_1e5
+        if  True:
+            if not True:    # Set shell positions
+                A1_r_shell  = np.array([
+                    # 288980.5138155968 ,
+                    # 711796.6268576325 ,
+                    # 1157697.0091660263 ,
+                    # 1610032.529344352 ,
+                    # 2059657.8388490146 ,
+                    # 2515036.1537798457 ,
+                    # 2957277.5454170965 ,
+                    # 3436414.323850209 ,
+                    # 3882563.9550488163 ,
+                    # 4603845.429175453 ,
+                    # 5203027.8131923275 ,
+                    # 5864732.26097005 ,
+                    # 6532040.545888821 ,
+                    # 7224142.372835953 ,
+                    # 7931545.341550462 ,
+                    # 8653473.414234135 ,
+                    # 9392996.207455412 ,
+                    # 10155169.546365062 ,
+                    # 10946587.33144757 ,
+                    # 11784934.789628413 ,
+                    # 12679451.759815669
+
+                    352777.7743056388 ,
+                    714597.0895492818 ,
+                    1161102.3971238954 ,
+                    1611000.9936271629 ,
+                    2064714.60793085 ,
+                    2523168.034512339 ,
+                    2989507.167449941 ,
+                    3461581.577431267 ,
+                    3881767.1947640283 ,
+                    4595982.304567953 ,
+                    5239830.30152907 ,
+                    5901413.726688967 ,
+                    6579624.0171661 ,
+                    7275545.072624271 ,
+                    7989277.960715488 ,
+                    8712172.143062701 ,
+                    9458996.738773389 ,
+                    10230357.298611071 ,
+                    11036153.917336972 ,
+                    11894343.991728878 ,
+                    12828382.779975135 ,
+                    ])
+                print(A1_r_shell)
+            if not True:    # Shift shell positions
+                A2_i_f  = np.array([
+                    # [8, -0.08],
+                    # [9, 0.09],
+
+                    # [7, -0.01],
+                    # [8, -0.08],
+                    # [9, 0.09],
+                    # [10, 0.03],
+                    # [11, 0.01],
+
+                    [2, -0.005],
+                    [3, -0.012],
+                    [4, -0.02],
+                    [5, -0.025],
+                    [6, -0.04],
+                    [7, -0.03],
+                    [8, -0.085],
+                    [9, 0.107],
+                    [10, 0.055],
+                    [11, 0.035],
+                    [12, 0.02],
+                    [13, 0.01],
+                    [14, 0.005],
+                    
+#                    [2, -0.005],   # Overdo it
+#                    [3, -0.012],
+#                    [4, -0.02],
+#                    [5, -0.025],
+#                    [6, -0.04],
+#                    [7, -0.03],
+#                    [8, -0.085],
+#                    [9, 0.2],
+#                    [10, 0.0],
+#                    [11, 0.035],
+#                    [12, 0.02],
+#                    [13, 0.01],
+#                    [14, 0.005],
+                    ])
+                for A1_i_f in A2_i_f:
+                    i   = int(A1_i_f[0])
+                    f   = A1_i_f[1]
+                    A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+                print("### %d  %.3e -> %.3e  %d" %
+                      (i, A1_r_shell[i],
+                       A1_r_shell[i] + f * (A1_r_shell[i] - A1_r_shell[i-1]),
+                       A1_mat_shell[i]))
+            if  True:       # Shift shell u
+                A2_i_f  = np.array([
+                    [9, 1.35],
+#                    [10, 0.85],
+                    ])
+                for A1_i_f in A2_i_f:
+                    i   = int(A1_i_f[0])
+                    f   = A1_i_f[1]
+                    A1_u_shell[i]   *= f
+                print("### %d  %.3e -> %.3e" %
+                      (i, A1_u_shell[i], A1_u_shell[i] * f))
+        # pU_m2_1e5
+        if not True:
             # Layer 1 outermost shells
             i=10
             f=-0.005
@@ -1234,45 +1339,45 @@ class GenSphere(object):
             A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             i=14
             f=-0.03
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])            
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             # ======== Layer 2 innermost shells
             i=15
             f=0.08
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             i=16
             f=0.02
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])    
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             i=17
             f=0.01
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
-            # Layer 2 outermost shells 
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+            # Layer 2 outermost shells
             i=31
             f=-0.01
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             i=32
             f=-0.02
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             i=33
             f=-0.0
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1]) 
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             # ======== Layer 3 innermost shells
             i=34
             f=0.35
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1]) 
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             i=35
             f=0.20
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
             i=36
             f=0.25
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])  
-            # Layer 3 outermost shells 
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+            # Layer 3 outermost shells
             i=37
             f=-0.80
-            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1]) 
-            print("### %d  %.3e -> %.3e  %d" % 
-                  (i, A1_r_shell[i], 
-                   A1_r_shell[i] + f * (A1_r_shell[i] - A1_r_shell[i-1]), 
-                   A1_mat_shell[i]))    
+            A1_r_shell[i]   += f * (A1_r_shell[i] - A1_r_shell[i-1])
+            print("### %d  %.3e -> %.3e  %d" %
+                  (i, A1_r_shell[i],
+                   A1_r_shell[i] + f * (A1_r_shell[i] - A1_r_shell[i-1]),
+                   A1_mat_shell[i]))
         ###
 
 
@@ -1638,23 +1743,3 @@ class GenSphere(object):
 
 if __name__ == '__main__':
     print(banner)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
