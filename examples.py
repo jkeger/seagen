@@ -1,6 +1,6 @@
 """ SEAGen Examples
 
-    Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
+    Jacob Kegerreis (2019) jacob.kegerreis@durham.ac.uk
 
     Simple example functions to demonstrate how to use the SEAGen module.
     Figures are plotted to show the generated particles, and relevant
@@ -18,9 +18,6 @@
 # ========
 #   I   Example Functions
 #   II  Main
-
-from __future__ import division
-from __future__ import print_function
 
 import numpy as np
 import sys
@@ -228,23 +225,3 @@ if __name__ == '__main__':
     test_gen_shell(42)
     test_gen_sphere_simple()
     test_gen_sphere_layers()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

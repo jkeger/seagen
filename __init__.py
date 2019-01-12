@@ -1,1 +1,1 @@
-from seagen import GenShell, GenSphere
+from .seagen import GenShell, GenSphere
