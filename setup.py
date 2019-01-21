@@ -21,6 +21,6 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Development Status :: 4 - Beta",
         ],
-    python_requires="3",
+    python_requires="=3",
     keywords=["particle arrangement density sphere shell SPH"],
 )
