@@ -204,6 +204,8 @@ def test_gen_sphere_layers():
     ax1.set_xlabel("Radius")
     ax1.set_ylabel("Density")
     ax2.set_ylabel("Temperature")
+    ax1.yaxis.label.set_color('b')
+    ax2.yaxis.label.set_color('r')
 
     ax1.set_xlim(0, None)
     ax1.set_ylim(0, None)
