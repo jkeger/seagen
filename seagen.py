@@ -3,16 +3,16 @@
     A python implementation of the stretched equal area (SEA) algorithm for
     generating spherically symmetric arrangements of particles with accurate
     particle densities, e.g. for SPH initial conditions that precisely match an
-    arbitrary density profile (Kegerreis et al. (2018), in prep.).
+    arbitrary density profile (Kegerreis et al. (2019), in prep.).
 
     See README.md and https://github.com/jkeger/seagen for more information.
 
-    Copyright (C) 2018 Jacob Kegerreis (jacob.kegerreis@durham.ac.uk)
+    Jacob Kegerreis (2019) jacob.kegerreis@durham.ac.uk
 
     GNU General Public License v3+, see LICENSE.txt.
 
-    See the __init__() doc strings for the GenShell and GenSphere classes for
-    the main documentation details, and examples.py for example uses.
+    See the __init__() doc strings of the GenShell and GenSphere classes for
+    the main documentation details, and see examples.py for example uses.
 """
 # ========
 # Contents:
@@ -21,9 +21,6 @@
 #   II  Classes
 #   III Main
 
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import sys
 
@@ -31,16 +28,7 @@ import sys
 # Constants
 # ========
 deg_to_rad  = np.pi/180
-
-banner  = (
-    "#  \n"
-    "#  SEAGen \n"
-    "#  \n"
-    "#  https://github.com/jkeger/seagen \n"
-    "#  \n"
-    "#  Kegerreis et al. (2018), in prep \n"
-    "#  \n"
-    )
+banner      = "#  SEAGen \n" "#  https://github.com/jkeger/seagen \n"
 
 
 # //////////////////////////////////////////////////////////////////////////// #
@@ -112,7 +100,7 @@ def get_weighted_mean(A1_weight, A1_value):
 
 class GenShell(object):
     """ Generate a single spherical shell of points ("particles") at a fixed
-        radius, using the SEA method described in Kegerreis et al. 2018 ("K18").
+        radius, using the SEA method described in Kegerreis et al. 2019 ("K19").
 
         See __init__()'s documentation for more details.
 
@@ -177,7 +165,7 @@ class GenShell(object):
     def get_cap_colatitude(self):
         """ Calculate the cap colatitude.
 
-            K18: eqn. (3)
+            K19 eqn. (3)
 
             Returns:
                 theta_cap (float)
@@ -189,7 +177,7 @@ class GenShell(object):
     def get_number_of_collars(self):
         """ Calculate the number of collars (not including the polar caps).
 
-            K18: eqn. (4)
+            K19 eqn. (4)
 
             Sets and returns:
                 N_col (int)
@@ -229,7 +217,7 @@ class GenShell(object):
         """ Calculate the area of a collar given the collar heights of itself
             and its neighbour.
 
-            K18: eqn. (5)
+            K19 eqn. (5)
 
             Args:
                 theta_i (float)
@@ -269,7 +257,7 @@ class GenShell(object):
     def get_ideal_N_regions_in_collar(self, A_col):
         """ Calculate the ideal number of regions in a collar.
 
-            K18: eqn (7).
+            K19 eqn (7).
 
             Returns:
                 N_reg_ideal (float)
@@ -282,7 +270,7 @@ class GenShell(object):
         """ Calculate the number of regions in each collar, not including the
             top polar cap.
 
-            K18: eqn (8,9).
+            K19 eqn (8,9).
 
             Sets and returns:
                 A1_N_reg_in_collar ([int])
@@ -307,7 +295,7 @@ class GenShell(object):
         """ Update the collar colatitudes to use the now-integer numbers of
             regions in each collar instead of the ideal.
 
-            K18: eqn (10).
+            K19 eqn (10).
 
             Sets and returns:
                 A1_collar_theta ([float])
@@ -328,7 +316,7 @@ class GenShell(object):
                                 d_phi_i_minus_one):
         """ Choose the starting longitude for particles in this collar.
 
-            K18: paragraph after eqn (12).
+            K19 paragraph after eqn (12).
 
             Args:
                 N_i, N_i_minus_one (int)
@@ -358,7 +346,7 @@ class GenShell(object):
     def get_point_positions(self):
         """ Calculate the point positions in the centres of every region.
 
-            K18: eqn (11,12).
+            K19 eqn (11,12).
 
             Sets and returns:
                 A1_theta ([float])
@@ -401,7 +389,7 @@ class GenShell(object):
 
                 # Also add a random initial offset to ensure that successive
                 # collars do not create lines of ~adjacent particles.
-                # (Second paragraph following K18: eqn (12).)
+                # (Second paragraph following K19 eqn (12).)
                 m       = np.random.randint(0, self.A1_N_reg_in_collar[i-1])
                 phi_0_i += (m * A1_d_phi[i-1])
 
@@ -413,7 +401,7 @@ class GenShell(object):
             # Set A1_theta
             self.A1_theta[N_regions_done:N_regions_done_next] = A1_theta[region]
 
-            # Set phi (K18: eqn (12))
+            # Set phi (K19 eqn (12))
             j               = np.arange(N_regions_in_collar, dtype=float)
             A1_phi_collar   = A1_phi_0[region] + j * A1_d_phi[region]
 
@@ -431,7 +419,7 @@ class GenShell(object):
     def get_stretch_params(self, N):
         """ Return the a and b parameters for the latitude stretching.
 
-            Empirically, b = 10 * a gives a good low density scatter.
+            Empirically, b = 10 * a gives an excellent low density scatter.
             For N > 80, a = 0.2. For N < 80, a has been fit by trial and error.
 
             Args:
@@ -543,10 +531,7 @@ class GenShell(object):
         elif N == 31:
             a   = 0.27
         elif N == 28:
-            a   = 0.20  # 3.38-3.60
-#            a   = 0.22  # 3.37-3.62
-#            a   = 0.21  # 3.37-3.60
-#            a   = 0.19  # 3.37-3.61
+            a   = 0.20
         elif N == 27:
             a   = 0.19
         else:
@@ -559,7 +544,7 @@ class GenShell(object):
     def apply_stretch_factor(self, a=0.2, b=2.0):
         """ Apply the SEA stretch factor.
 
-            K18: eqn (13).
+            K19 eqn (13).
 
             Args:
                 a, b (float)
@@ -1030,7 +1015,7 @@ class GenSphere(object):
                 # ========
                 # Find the shells that fit in this layer
                 # ========
-                N_shell = 0
+                N_shell = 1
                 while idx_outer < idx_bound:
                     # Calculate the shell width from the profile density
                     # relative to the first shell in this layer
@@ -1153,18 +1138,11 @@ class GenSphere(object):
             A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
 
             # Radius (mean of half-way and mass-weighted radii)
-            if i_shell == 0:
-                # Empircally, the tetrahedron particles are better near r_half
-                r_half  = self.A1_r_prof[idx_outer] / 2
-                r_mw    = get_weighted_mean(A1_m_prof_shell,
-                                            self.A1_r_prof[idx_inner:idx_outer])
-                A1_r_shell.append(0.9*r_half + 0.1*r_mw)
-            else:
-                r_half  = (self.A1_r_prof[idx_inner]
-                           + self.A1_r_prof[idx_outer]) / 2
-                r_mw    = get_weighted_mean(A1_m_prof_shell,
-                                            self.A1_r_prof[idx_inner:idx_outer])
-                A1_r_shell.append((r_half + r_mw) / 2)
+            r_half  = (self.A1_r_prof[idx_inner]
+                       + self.A1_r_prof[idx_outer]) / 2
+            r_mw    = get_weighted_mean(A1_m_prof_shell,
+                                        self.A1_r_prof[idx_inner:idx_outer])
+            A1_r_shell.append((r_half + r_mw) / 2)
 
             # Other properties
             A1_rho_shell.append(get_weighted_mean(
@@ -1458,7 +1436,7 @@ class GenSphere(object):
                     The cartesian coordinates of the four vertices.
         """
         # Radius scale
-        r_scale = r / np.cbrt(3)
+        r_scale = r / np.sqrt(3)
         # Tetrahedron vertex coordinates
         A1_x    = np.array([1, 1, -1, -1]) * r_scale
         A1_y    = np.array([1, -1, 1, -1]) * r_scale
@@ -1512,7 +1490,6 @@ class GenSphere(object):
             self.A1_x.append(A1_x)
             self.A1_y.append(A1_y)
             self.A1_z.append(A1_z)
-
         else:
             shell = GenShell(N, r, do_stretch=self.do_stretch)
 
@@ -1580,23 +1557,3 @@ class GenSphere(object):
 
 if __name__ == '__main__':
     print(banner)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
