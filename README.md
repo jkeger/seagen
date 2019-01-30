@@ -4,9 +4,10 @@ SEAGen
 A python implementation of the stretched equal area (SEA) algorithm for
 generating spherically symmetric arrangements of particles with accurate
 particle densities, e.g. for SPH initial conditions that precisely match an
-arbitrary density profile, as presented in Kegerreis et al. (2019).
+arbitrary density profile, as presented in Kegerreis et al. (2019)
+https://arxiv.org/pdf/1901.09934.pdf.
 
-Jacob Kegerreis (2019) jacob.kegerreis@durham.ac.uk
+Jacob Kegerreis (2019) jacob.kegerreis@durham.ac.uk  
 Josh Borrow
 
 Visit https://github.com/jkeger/seagen to download the code including examples
@@ -14,7 +15,7 @@ and for support.
 
 This program has been tested for a wide range of cases but not exhaustively. If
 you find any bugs, potential improvements, or features worth adding, then please
-do let us know at jacob.kegerreis@durham.ac.uk!
+let us know!
 
 
 Contents

@@ -3,7 +3,8 @@
     A python implementation of the stretched equal area (SEA) algorithm for
     generating spherically symmetric arrangements of particles with accurate
     particle densities, e.g. for SPH initial conditions that precisely match an
-    arbitrary density profile (Kegerreis et al. (2019), in prep.).
+    arbitrary density profile (Kegerreis et al. 2019, 
+    https://arxiv.org/pdf/1901.09934.pdf).
 
     See README.md and https://github.com/jkeger/seagen for more information.
 
