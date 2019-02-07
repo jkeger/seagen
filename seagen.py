@@ -624,7 +624,7 @@ class GenSphere(object):
     """
     def __init__(self, N_picle_des, A1_r_prof, A1_rho_prof, A1_mat_prof=None,
                  A1_u_prof=None, A1_T_prof=None, A1_P_prof=None,
-                 do_stretch=True, verb=1):
+                 do_stretch=True, do_eq_num_dens=False, verb=1):
         """ Generate nested spherical shells of particles to match radial
             profiles.
 
@@ -654,6 +654,12 @@ class GenSphere(object):
                 do_stretch (opt. bool)
                     Default True. Set False to not do the SEA method's latitude
                     stretching.
+
+                do_eq_num_dens (opt. bool)
+                    Default False to keep all particle masses almost equal in 
+                    every shell. Set True to instead keep the particle number 
+                    density equal in every shell, so the particle masses change
+                    to match the density profile.
 
                 verb (opt. int)
                     The verbosity to control printed output:
@@ -698,6 +704,7 @@ class GenSphere(object):
         self.A1_T_prof      = A1_T_prof
         self.A1_P_prof      = A1_P_prof
         self.do_stretch     = do_stretch
+        self.do_eq_num_dens = do_eq_num_dens
         self.verb           = verb
 
         # Maximum number of attempts allowed for tweaking particle mass and
@@ -820,7 +827,7 @@ class GenSphere(object):
 
         # Tweak the particle mass
         is_done = False
-        # This also sets the shell data: A1_idx_outer and A1_r_outer
+        # This also sets the shell radius data: A1_idx_outer and A1_r_outer
         for attempt in range(attempt_max + 1):
             if attempt == attempt_max:
                 print("\nFailed after %d attempts!" % attempt_max)
@@ -861,7 +868,10 @@ class GenSphere(object):
                 # Calculate the shell width from the profile density relative to
                 # the core radius and density
                 rho = self.A1_rho_prof[idx_outer]
-                dr  = self.dr_core * np.cbrt(self.rho_core / rho)
+                if self.do_eq_num_dens: 
+                    dr  = self.dr_core
+                else: 
+                    dr  = self.dr_core * np.cbrt(self.rho_core / rho)
 
                 # Find the profile radius just beyond this shell (r_outer + dr)
                 idx_outer   = np.searchsorted(self.A1_r_prof, r_outer + dr)
@@ -1130,13 +1140,6 @@ class GenSphere(object):
 
             # Mass
             A1_m_shell.append(np.sum(A1_m_prof_shell))
-            # Number of particles
-            if i_shell == 0:
-                A1_N_shell.append(4)
-            else:
-                A1_N_shell.append(int(round(A1_m_shell[-1] / self.m_picle)))
-            # Actual particle mass
-            A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
 
             # Radius (mean of half-way and mass-weighted radii)
             r_half  = (self.A1_r_prof[idx_inner]
@@ -1158,6 +1161,22 @@ class GenSphere(object):
             if self.do_P:
                 A1_P_shell.append(get_weighted_mean(
                     A1_m_prof_shell, self.A1_P_prof[idx_inner:idx_outer]))
+                    
+            # Number of particles and actual particle mass
+            if i_shell == 0:
+                A1_N_shell.append(4)
+                A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
+            else:
+                if self.do_eq_num_dens:
+                    # Particle mass to keep the number density equal
+                    m_picle = (self.m_picle * A1_rho_shell[i_shell] 
+                               / self.rho_core)
+                    N_shell = int(round(A1_m_shell[i_shell] / m_picle))
+                    A1_N_shell.append(N_shell)
+                    A1_m_picle_shell.append(A1_m_shell[i_shell] / N_shell)
+                else: 
+                    A1_N_shell.append(int(round(A1_m_shell[-1] / self.m_picle)))
+                    A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
 
             idx_inner   = idx_outer
 
