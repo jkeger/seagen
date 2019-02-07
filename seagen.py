@@ -624,7 +624,7 @@ class GenSphere(object):
     """
     def __init__(self, N_picle_des, A1_r_prof, A1_rho_prof, A1_mat_prof=None,
                  A1_u_prof=None, A1_T_prof=None, A1_P_prof=None,
-                 do_stretch=True, do_eq_num_dens=False, verb=1):
+                 A1_m_rel_prof=None, do_stretch=True, verb=1):
         """ Generate nested spherical shells of particles to match radial
             profiles.
 
@@ -651,15 +651,18 @@ class GenSphere(object):
                     specific internal energy, temperature, and pressure.
                     Default None.
 
+                A1_m_rel_prof (opt. [float])
+                    Default None to keep the particle mass ~constant and adjust 
+                    the shell widths to match the density profile. Set to a 
+                    radial profile of 0 < m_rel <= 1 to instead change the
+                    shell particle masses relative to the input particle mass.
+                    e.g. [1, 1, ..., 1, 0.9, 0.8, ..., 0.2, 0.1, ..., 0.1] for 
+                    input-mass particles in the centre, 1/10th mass particles 
+                    in the outer region, and a smooth transition in the middle.
+
                 do_stretch (opt. bool)
                     Default True. Set False to not do the SEA method's latitude
                     stretching.
-
-                do_eq_num_dens (opt. bool)
-                    Default False to keep all particle masses almost equal in 
-                    every shell. Set True to instead keep the particle number 
-                    density equal in every shell, so the particle masses change
-                    to match the density profile.
 
                 verb (opt. int)
                     The verbosity to control printed output:
@@ -703,8 +706,8 @@ class GenSphere(object):
         self.A1_u_prof      = A1_u_prof
         self.A1_T_prof      = A1_T_prof
         self.A1_P_prof      = A1_P_prof
+        self.A1_m_rel_prof  = A1_m_rel_prof
         self.do_stretch     = do_stretch
-        self.do_eq_num_dens = do_eq_num_dens
         self.verb           = verb
 
         # Maximum number of attempts allowed for tweaking particle mass and
@@ -724,6 +727,10 @@ class GenSphere(object):
             self.do_P   = True
         else:
             self.do_P   = False
+        if self.A1_m_rel_prof is not None:
+            self.do_m_rel   = True
+        else:
+            self.do_m_rel   = False
 
         # Verbosity
         if self.verb >= 1:
@@ -862,14 +869,14 @@ class GenSphere(object):
             # ========
             # Find the shells that fit in this layer
             # ========
-            N_shell = 0
+            N_shell = 1
             # Continue until a break from inside, to do properly the final shell
             while N_shell < self.N_prof:
                 # Calculate the shell width from the profile density relative to
                 # the core radius and density
                 rho = self.A1_rho_prof[idx_outer]
-                if self.do_eq_num_dens: 
-                    dr  = self.dr_core
+                if self.A1_m_rel_prof is not None:
+                    dr  = self.dr_core * np.cbrt(self.A1_m_rel_prof[idx_outer])
                 else: 
                     dr  = self.dr_core * np.cbrt(self.rho_core / rho)
 
@@ -1167,13 +1174,10 @@ class GenSphere(object):
                 A1_N_shell.append(4)
                 A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
             else:
-                if self.do_eq_num_dens:
-                    # Particle mass to keep the number density equal
-                    m_picle = (self.m_picle * A1_rho_shell[i_shell] 
-                               / self.rho_core)
-                    N_shell = int(round(A1_m_shell[i_shell] / m_picle))
-                    A1_N_shell.append(N_shell)
-                    A1_m_picle_shell.append(A1_m_shell[i_shell] / N_shell)
+                if self.A1_m_rel_prof is not None:
+                    m_picle = self.m_picle * self.A1_m_rel_prof[idx_inner]
+                    A1_N_shell.append(int(round(A1_m_shell[-1] / m_picle)))
+                    A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
                 else: 
                     A1_N_shell.append(int(round(A1_m_shell[-1] / self.m_picle)))
                     A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
@@ -1332,6 +1336,9 @@ class GenSphere(object):
                 self.A1_T_prof  = np.append(self.A1_T_prof[0], self.A1_T_prof)
             if self.do_P:
                 self.A1_P_prof  = np.append(self.A1_P_prof[0], self.A1_P_prof)
+            if self.do_m_rel:
+                self.A1_m_rel_prof  = np.append(self.A1_m_rel_prof[0], 
+                                                self.A1_m_rel_prof)
 
             # ========
             # Interpolate
@@ -1366,6 +1373,9 @@ class GenSphere(object):
             if self.do_P:
                 self.A1_P_prof  = np.interp(self.A1_r_prof, A1_r_prof_old,
                                             self.A1_P_prof)
+            if self.do_m_rel:
+                self.A1_m_rel_prof  = np.interp(self.A1_r_prof, A1_r_prof_old,
+                                                self.A1_m_rel_prof)
 
             # Remove the zero-radius elements
             self.A1_r_prof      = self.A1_r_prof[1:]
@@ -1377,6 +1387,8 @@ class GenSphere(object):
                 self.A1_T_prof  = self.A1_T_prof[1:]
             if self.do_P:
                 self.A1_P_prof  = self.A1_P_prof[1:]
+            if self.do_m_rel:
+                self.A1_m_rel_prof  = self.A1_m_rel_prof[1:]
             self.N_prof         = len(self.A1_r_prof)
 
             # Re-calculate the mass profile
