@@ -780,6 +780,14 @@ class GenSphere(object):
         self.A1_m_enc_prof  = np.cumsum(self.A1_m_prof)
         self.m_tot          = self.A1_m_enc_prof[-1]
         self.m_picle_des    = self.m_tot / self.N_picle_des
+        if self.do_m_rel:
+            # Estimate the total particles using the relative masses
+            A1_N_picle_prof = self.A1_m_prof / (self.m_picle_des 
+                                                * self.A1_m_rel_prof)
+            # Crudely tweak to avoid ending up with slightly too few particles
+            A1_N_picle_prof *= 0.98
+            # Scale the initial mass to get the desired total particle number
+            self.m_picle_des    *= np.sum(A1_N_picle_prof) / self.N_picle_des
 
         # Find the radii of all material boundaries (including the outer edge)
         self.find_material_boundaries()
