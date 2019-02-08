@@ -875,7 +875,7 @@ class GenSphere(object):
                 # Calculate the shell width from the profile density relative to
                 # the core radius and density
                 rho = self.A1_rho_prof[idx_outer]
-                if self.A1_m_rel_prof is not None:
+                if self.do_m_rel:
                     dr  = self.dr_core * np.cbrt(self.A1_m_rel_prof[idx_outer])
                 else: 
                     dr  = self.dr_core * np.cbrt(self.rho_core / rho)
@@ -965,7 +965,11 @@ class GenSphere(object):
             idx_inner   = self.A1_idx_bound[i_layer - 1] + 1
             r_inner     = self.A1_r_bound[i_layer - 1]
             rho         = self.A1_rho_prof[idx_inner]
-            dr          = self.dr_core * np.cbrt(self.rho_core / rho)
+            if self.do_m_rel:
+                self.m_rel_0    = self.A1_m_rel_prof[idx_outer]
+                dr              = self.dr_core * np.cbrt(self.m_rel_0)
+            else: 
+                dr  = self.dr_core * np.cbrt(self.rho_core / rho)
 
             # Find the profile radius just beyond this shell (r_outer + dr)
             idx_outer   = np.searchsorted(self.A1_r_prof, r_outer + dr)
@@ -1038,7 +1042,11 @@ class GenSphere(object):
                     # Calculate the shell width from the profile density
                     # relative to the first shell in this layer
                     rho = self.A1_rho_prof[idx_outer]
-                    dr  = self.dr_0 * np.cbrt(self.rho_0 / rho)
+                    if self.do_m_rel:
+                        dr  = self.dr_0 * np.cbrt(self.A1_m_rel_prof[idx_outer]
+                                                  / self.m_rel_0)
+                    else: 
+                        dr  = self.dr_0 * np.cbrt(self.rho_0 / rho)
 
                     # Find the profile radius just beyond this shell (r_outer +
                     # dr)
@@ -1122,9 +1130,11 @@ class GenSphere(object):
             i_layer += 1
 
         # Stack all layers' shells together
-        A1_idx_outer        = np.hstack(A1_idx_outer)
-        A1_r_outer          = np.hstack(A1_r_outer)
-        self.N_shell_tot    = len(A1_idx_outer)
+        self.A1_idx_outer   = np.hstack(A1_idx_outer)
+        self.A1_r_outer     = np.hstack(A1_r_outer)
+        self.A1_dr_shell    = (self.A1_r_outer 
+                               - np.append(0, self.A1_r_outer[:-1]))
+        self.N_shell_tot    = len(self.A1_idx_outer)
 
         if self.verb >= 1:
             print("\n> Done profile division into shells!")
@@ -1141,7 +1151,7 @@ class GenSphere(object):
         # Set the particle values for each shell
         # ================
         idx_inner   = 0
-        for i_shell, idx_outer in enumerate(A1_idx_outer):
+        for i_shell, idx_outer in enumerate(self.A1_idx_outer):
             # Profile slice for this shell
             A1_m_prof_shell = self.A1_m_prof[idx_inner:idx_outer]
 
@@ -1174,7 +1184,7 @@ class GenSphere(object):
                 A1_N_shell.append(4)
                 A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
             else:
-                if self.A1_m_rel_prof is not None:
+                if self.do_m_rel:
                     m_picle = self.m_picle * self.A1_m_rel_prof[idx_inner]
                     A1_N_shell.append(int(round(A1_m_shell[-1] / m_picle)))
                     A1_m_picle_shell.append(A1_m_shell[-1] / A1_N_shell[-1])
@@ -1192,7 +1202,8 @@ class GenSphere(object):
                 # Print the header again for a new layer
                 if idx_outer - 1 in self.A1_idx_bound:
                     print(header)
-
+       
+        self.A1_m_picle_shell   = np.array(A1_m_picle_shell)
         if self.verb >= 2:
             print(header)
         if self.verb >= 1:
