@@ -624,7 +624,8 @@ class GenSphere(object):
     """
     def __init__(self, N_picle_des, A1_r_prof, A1_rho_prof, A1_mat_prof=None,
                  A1_u_prof=None, A1_T_prof=None, A1_P_prof=None,
-                 A1_m_rel_prof=None, do_stretch=True, verb=1):
+                 A1_m_rel_prof=None, do_stretch=True, A1_force_more_shells=None,
+                 verb=1):
         """ Generate nested spherical shells of particles to match radial
             profiles.
 
@@ -663,6 +664,11 @@ class GenSphere(object):
                 do_stretch (opt. bool)
                     Default True. Set False to not do the SEA method's latitude
                     stretching.
+                    
+                A1_force_more_shells (opt [bool])
+                    For each layer, if True, then only allow the shell tweaking
+                    to add more shells. Default False. Useful for e.g. a low-
+                    density outer layer that doesn't have many shells.
 
                 verb (opt. int)
                     The verbosity to control printed output:
@@ -795,6 +801,10 @@ class GenSphere(object):
 
         # Check the profiles and update them if necessary
         self.check_interp_profiles()
+        
+        # Force the shell tweaking to increase the number in each layer
+        if A1_force_more_shells is None:
+            A1_force_more_shells    = [False] * self.N_layer
 
         # Max allowed particle mass
         m_picle_max = self.m_picle_des * 1.01
@@ -1093,6 +1103,10 @@ class GenSphere(object):
                 # Number of shells for the initial number of particles
                 if N_shell_init == 0:
                     N_shell_init    = N_shell
+                    
+                # Force iterating towards more shells in this layer
+                if A1_force_more_shells[i_layer]:
+                    dN_picle_shell  = -1
 
                 # ========
                 # Change the number of particles in the first shell until either
