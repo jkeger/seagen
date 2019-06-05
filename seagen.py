@@ -712,7 +712,7 @@ class GenSphere(object):
 
         # Maximum number of attempts allowed for tweaking particle mass and
         # number of particles in the first shell of an outer layer
-        attempt_max = int(max(self.N_picle_des / 1e3, 1e3))
+        attempt_max = int(max(self.N_picle_des / 1e3, 1e5))
 
         # Optional profiles
         if self.A1_u_prof is not None:
@@ -845,8 +845,7 @@ class GenSphere(object):
         # This also sets the shell radius data: A1_idx_outer and A1_r_outer
         for attempt in range(attempt_max + 1):
             if attempt == attempt_max:
-                print("\nFailed after %d attempts!" % attempt_max)
-                sys.exit()
+                raise RuntimeError("Failed after %d attempts!" % attempt_max)
 
             if self.verb == 3:
                 # No endline so can add more on this line in the loop
@@ -995,7 +994,8 @@ class GenSphere(object):
                 print("\n> Tweak the number of particles in the first shell "
                       "to fix the outer boundary")
             if self.verb == 3:
-                header  = "    Attempt  Particles  1st shell width "
+                header  = ("    Attempt  Particles  1st shell width  "
+                           "Number of shells")
                 print(header, end='')
 
             # Initialise
@@ -1006,8 +1006,8 @@ class GenSphere(object):
             # after is_done is set True
             for attempt in range(attempt_max + 1):
                 if attempt == attempt_max:
-                    print("\nFailed after %d attempts!" % attempt_max)
-                    sys.exit()
+                    raise RuntimeError("Failed after %d attempts!" 
+                                       % attempt_max)
 
                 if self.verb == 3:
                     # No endline so can add more on this line in the loop
@@ -1025,7 +1025,11 @@ class GenSphere(object):
                     - self.A1_m_enc_prof[idx_inner],
                     N_picle_shell * self.m_picle
                     )
-                r_outer     = self.A1_r_prof[idx_outer]
+                try:
+                    r_outer     = self.A1_r_prof[idx_outer]
+                except IndexError:
+                    print("\nError: The layer is too thin for this particle mass")
+                    raise
                 self.dr_0   = r_outer - r_inner
 
                 if self.verb == 3:
@@ -1077,6 +1081,10 @@ class GenSphere(object):
 
                     N_shell += 1
 
+                if self.verb == 3:
+                    print("        %d" % N_shell, end='')
+                    sys.stdout.flush()
+                    
                 if is_done:
                     if self.verb == 3:
                         print("")
@@ -1107,11 +1115,11 @@ class GenSphere(object):
 
                 # Shell number changed by more than +/-1 which shouldn't happen
                 elif N_shell != N_shell_init:
-                    print("\nN_shell jumped from %d to %d! " %
-                          (N_shell_init, N_shell))
-                    print("Check that the profile radii steps are dense enough "
-                          "for these outer shells... ")
-                    sys.exit()
+                    raise RuntimeError(
+                        "N_shell jumped from %d to %d! "
+                        "\nCheck that the profile radii steps are dense enough "
+                        "for these outer shells... " % (N_shell_init, N_shell)
+                        )
 
                 # Not yet done so vary the number of particles in the first
                 # shell (i.e. try: N-1, N+1, N-2, N+2, ...)
