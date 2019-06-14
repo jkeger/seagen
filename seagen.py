@@ -657,9 +657,10 @@ class GenSphere(object):
                     the shell widths to match the density profile. Set to a 
                     radial profile of 0 < m_rel <= 1 to instead change the
                     shell particle masses relative to the input particle mass.
-                    e.g. [1, 1, ..., 1, 0.9, 0.8, ..., 0.2, 0.1, ..., 0.1] for 
-                    input-mass particles in the centre, 1/10th mass particles 
-                    in the outer region, and a smooth transition in the middle.
+                    e.g. [1, 1, ..., 1, 0.9, 0.8, ..., 0.2, 0.1, 0.1, ..., 0.1] 
+                    for input-mass particles in the centre, 1/10th mass 
+                    particles in the outer region, and a smooth transition in 
+                    the middle.
 
                 do_stretch (opt. bool)
                     Default True. Set False to not do the SEA method's latitude
@@ -760,11 +761,11 @@ class GenSphere(object):
         A1_rho_shell        = []
         A1_mat_shell        = []
         if self.do_u:
-            A1_u_shell          = []
+            A1_u_shell  = []
         if self.do_T:
-            A1_T_shell          = []
+            A1_T_shell  = []
         if self.do_P:
-            A1_P_shell          = []
+            A1_P_shell  = []
         # All particle data
         self.A1_m   = []
         self.A1_r   = []
@@ -786,14 +787,6 @@ class GenSphere(object):
         self.A1_m_enc_prof  = np.cumsum(self.A1_m_prof)
         self.m_tot          = self.A1_m_enc_prof[-1]
         self.m_picle_des    = self.m_tot / self.N_picle_des
-        if self.do_m_rel:
-            # Estimate the total particles using the relative masses
-            A1_N_picle_prof = self.A1_m_prof / (self.m_picle_des 
-                                                * self.A1_m_rel_prof)
-            # Crudely tweak to avoid ending up with slightly too few particles
-            A1_N_picle_prof *= 0.98
-            # Scale the initial mass to get the desired total particle number
-            self.m_picle_des    *= np.sum(A1_N_picle_prof) / self.N_picle_des
 
         # Find the radii of all material boundaries (including the outer edge)
         self.find_material_boundaries()
@@ -808,6 +801,8 @@ class GenSphere(object):
 
         # Max allowed particle mass
         m_picle_max = self.m_picle_des * 1.01
+        if self.do_m_rel:
+            m_rel_max   = np.amax(self.A1_m_rel_prof)
         # Initial relative particle mass tweak
         dm_picle_init   = 1e-3
 
@@ -847,7 +842,10 @@ class GenSphere(object):
         if self.verb >= 1:
             print("\n> Tweak the particle mass to fix the outer boundary")
         if self.verb == 3:
-            header  = "    Attempt  Particle mass   Relative tweak "
+            if self.do_m_rel:
+                header  = "    Attempt  Particle mass  Max rel mass  Relative tweak "
+            else:
+                header  = "    Attempt  Particle mass  Relative tweak "
             print(header, end='')
 
         # Tweak the particle mass
@@ -859,8 +857,13 @@ class GenSphere(object):
 
             if self.verb == 3:
                 # No endline so can add more on this line in the loop
-                print("\n    %07d  %.5e     %.1e " %
-                      (attempt, self.m_picle, self.dm_picle), end='')
+                if self.do_m_rel:
+                    print("\n    %07d  %.5e    %.5f       %.1e " %
+                          (attempt, self.m_picle * self.A1_m_rel_prof[0], 
+                           m_rel_max, self.dm_picle), end='')
+                else:
+                    print("\n    %07d  %.5e    %.1e " %
+                          (attempt, self.m_picle, self.dm_picle), end='')
                 sys.stdout.flush()
 
             # Find the outer boundary radii of all shells
@@ -870,8 +873,14 @@ class GenSphere(object):
             # Set the core dr with the radius containing the mass of the central
             # tetrahedron of 4 particles
             N_picle_shell   = 4
-            idx_outer       = np.searchsorted(self.A1_m_enc_prof,
-                                              N_picle_shell * self.m_picle)
+            if self.do_m_rel:
+                idx_outer       = np.searchsorted(
+                    self.A1_m_enc_prof,
+                    N_picle_shell * self.m_picle * self.A1_m_rel_prof[0]
+                    )
+            else:
+                idx_outer       = np.searchsorted(self.A1_m_enc_prof,
+                                                  N_picle_shell * self.m_picle)
             r_outer         = self.A1_r_prof[idx_outer]
             self.dr_core    = r_outer
 
@@ -931,7 +940,14 @@ class GenSphere(object):
             # ========
             # Not got another shell yet, so reduce the mass
             if N_shell == N_shell_init:
-                self.m_picle    *= 1 - self.dm_picle
+                if self.do_m_rel:
+                    # Reduce the maximum relative mass, so that any smaller 
+                    # masses are kept unchanged
+                    A1_sel      = np.where(m_rel_max < self.A1_m_rel_prof)[0]
+                    m_rel_max   *= 1 - self.dm_picle
+                    self.A1_m_rel_prof[A1_sel]  = m_rel_max
+                else:
+                    self.m_picle    *= 1 - self.dm_picle
 
             # Got one more shell, but need it to *just* fit, so go back one step
             # and retry with smaller mass changes (repeat this twice!)
@@ -982,18 +998,21 @@ class GenSphere(object):
             idx_inner   = self.A1_idx_bound[i_layer - 1] + 1
             r_inner     = self.A1_r_bound[i_layer - 1]
             rho         = self.A1_rho_prof[idx_inner]
+            dr          = self.dr_core * np.cbrt(self.rho_core / rho)
             if self.do_m_rel:
                 self.m_rel_0    = self.A1_m_rel_prof[idx_outer]
-                dr              = self.dr_core * np.cbrt(self.m_rel_0)
-            else: 
-                dr  = self.dr_core * np.cbrt(self.rho_core / rho)
+                dr              *= np.cbrt(self.m_rel_0)
 
             # Find the profile radius just beyond this shell (r_outer + dr)
             idx_outer   = np.searchsorted(self.A1_r_prof, r_outer + dr)
 
             # Shell mass and initial number of particles
             m_shell         = sum(self.A1_m_prof[idx_inner:idx_outer])
-            N_picle_shell   = int(round(m_shell / self.m_picle))
+            if self.do_m_rel:
+                m_picle     = self.m_picle * self.A1_m_rel_prof[idx_inner]
+            else:
+                m_picle     = self.m_picle
+            N_picle_shell   = int(round(m_shell / m_picle))
             N_picle_init    = N_picle_shell
 
             # ========
@@ -1030,13 +1049,17 @@ class GenSphere(object):
 
                 # Set the starting dr by the shell that contains the mass of
                 # N_picle_shell particles, instead of continuing to use dr_core
+                if self.do_m_rel:
+                    m_picle = self.m_picle * self.A1_m_rel_prof[idx_inner]
+                else:
+                    m_picle = self.m_picle
                 idx_outer   = idx_inner + np.searchsorted(
                     self.A1_m_enc_prof[idx_inner:]
                     - self.A1_m_enc_prof[idx_inner],
-                    N_picle_shell * self.m_picle
+                    N_picle_shell * m_picle
                     )
                 try:
-                    r_outer     = self.A1_r_prof[idx_outer]
+                    r_outer = self.A1_r_prof[idx_outer]
                 except IndexError:
                     print("\nError: The layer is too thin for this particle mass")
                     raise
@@ -1332,9 +1355,15 @@ class GenSphere(object):
         # ========
         n_interp    = 0
 
+        # Use the smallest particle mass that may be used
+        if self.do_m_rel:
+            m_picle = self.m_picle_des * np.amin(self.A1_m_rel_prof)
+        else:
+            m_picle = self.m_picle_des
+
         # Check the first 4 particle masses are enclosed by many profile steps
         idx_min     = int(1e3)
-        idx_outer   = np.searchsorted(self.A1_m_enc_prof, 4 * self.m_picle_des)
+        idx_outer   = np.searchsorted(self.A1_m_enc_prof, 4 * m_picle)
         if idx_outer < idx_min:
             # Estimate the interpolation needed assuming constant density
             n_interp    = int(np.floor(idx_min / idx_outer) + 1)
@@ -1344,7 +1373,7 @@ class GenSphere(object):
                       (idx_outer, n_interp))
 
         # Check the outermost profile shell contains a low mass
-        m_shell_min = max(self.N_picle_des / 1e4, 1) * self.m_picle_des
+        m_shell_min = max(self.N_picle_des / 1e4, 1) * m_picle
         if self.A1_m_prof[-1] > m_shell_min:
             # Estimate the interpolation needed assuming constant density
             n_interp    = max(
@@ -1356,7 +1385,7 @@ class GenSphere(object):
                     print("")
                 print("Final profile shell has a mass of m_prof = %.1f "
                       "particles: n_interp = %d " %
-                      (self.A1_m_prof[-1] / self.m_picle_des, n_interp))
+                      (self.A1_m_prof[-1] / m_picle, n_interp))
 
         # Interpolate if either check failed
         if n_interp > 0:
@@ -1364,7 +1393,7 @@ class GenSphere(object):
             if self.verb >= 2:
                 print("    N_prof = %d,  n_interp = %d " %
                       (self.N_prof, n_interp))
-
+            
             # Add a zero-radius element to each profile for interpolation
             self.A1_r_prof      = np.append(0, self.A1_r_prof)
             self.A1_rho_prof    = np.append(self.A1_rho_prof[0],
@@ -1380,31 +1409,50 @@ class GenSphere(object):
             if self.do_m_rel:
                 self.A1_m_rel_prof  = np.append(self.A1_m_rel_prof[0], 
                                                 self.A1_m_rel_prof)
+            
+            # Interpolated radii
+            A1_idx_interp   = (np.arange((self.N_prof + 1) * n_interp)
+                               / n_interp)[:-(n_interp - 1)]
+            A1_r_prof_new   = np.interp(
+                A1_idx_interp, np.arange(self.N_prof + 1), self.A1_r_prof)
+                      
+            # Add extra profile elements at the very start of each layer to keep
+            # a constant density etc. instead of blurring across the boundaries
+            r_tiny  = 0.01 * self.A1_r_prof[2] / n_interp
+            A1_idx  = self.A1_idx_bound[:-1] + 2
+            A1_r    = self.A1_r_prof[A1_idx - 1]
+            
+            # Insert just after the end of the previous layer(s)
+            self.A1_r_prof      = np.insert(
+                self.A1_r_prof, A1_idx, A1_r + r_tiny)
+            self.A1_mat_prof    = np.insert(self.A1_mat_prof, A1_idx,
+                                            self.A1_mat_prof[A1_idx])
+            self.A1_rho_prof    = np.insert(self.A1_rho_prof, A1_idx,
+                                            self.A1_rho_prof[A1_idx])
+            if self.do_u:
+                self.A1_u_prof  = np.insert(self.A1_u_prof, A1_idx,
+                                            self.A1_u_prof[A1_idx])
+            if self.do_T:
+                self.A1_T_prof  = np.insert(self.A1_T_prof, A1_idx,
+                                            self.A1_T_prof[A1_idx])
+            if self.do_P:
+                self.A1_P_prof  = np.insert(self.A1_P_prof, A1_idx,
+                                            self.A1_P_prof[A1_idx])
+            if self.do_m_rel:
+                self.A1_m_rel_prof  = np.insert(self.A1_m_rel_prof, A1_idx,
+                                                self.A1_m_rel_prof[A1_idx])
 
             # ========
             # Interpolate
             # ========
-            # Radii
-            A1_idx          = np.arange(self.N_prof + 1)
-            A1_idx_interp   = (np.arange((self.N_prof + 1) * n_interp)
-                               / n_interp)[:-(n_interp - 1)]
             A1_r_prof_old   = self.A1_r_prof.copy()
-            self.A1_r_prof  = np.interp(A1_idx_interp, A1_idx, self.A1_r_prof)
+            self.A1_r_prof  = A1_r_prof_new
             self.N_prof     = len(self.A1_r_prof)
-
-            # Density
+            
             self.A1_rho_prof    = np.interp(self.A1_r_prof, A1_r_prof_old,
                                             self.A1_rho_prof)
-
-            # Material (can't interpolate the integers)
-            self.A1_mat_prof    = np.empty(self.N_prof)
-            # Indices of the first profile shells in each layer
-            A1_idx  = np.append(0, self.A1_idx_bound[:-1] + 1)
-            A1_idx  *= n_interp
-            for idx, mat in zip(A1_idx, self.A1_mat_layer):
-                self.A1_mat_prof[idx:]  = mat
-
-            # Other profiles
+            self.A1_mat_prof    = np.interp(self.A1_r_prof, A1_r_prof_old,
+                                            self.A1_mat_prof).astype(int)
             if self.do_u:
                 self.A1_u_prof  = np.interp(self.A1_r_prof, A1_r_prof_old,
                                             self.A1_u_prof)
