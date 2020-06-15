@@ -61,7 +61,7 @@ def test_gen_shell(N):
     azim    = 0
 
     fig = plt.figure(figsize=(7, 7))
-    ax  = fig.add_subplot(1, 1, 1, aspect='equal', projection="3d")
+    ax  = fig.add_subplot(1, 1, 1, projection="3d")
 
     # Dense longitude lines since plotting an actual sphere surface looks awful
     for phi in np.arange(0, 360, 1):
@@ -139,7 +139,7 @@ def test_gen_sphere_simple():
     A1_rho_prof = 3 - 2*A1_r_prof**2
 
     # Generate particles
-    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, verb=2)
+    particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof, verbosity=2)
 
     # Figure
     plt.figure(figsize=(7, 7))
@@ -188,7 +188,7 @@ def test_gen_sphere_layers():
     # Generate particles
     particles   = GenSphere(N_picle, A1_r_prof, A1_rho_prof,
                             A1_mat_prof=A1_mat_prof, A1_T_prof=A1_T_prof,
-                            verb=2)
+                            verbosity=2)
 
     # Figure
     plt.figure(figsize=(7, 7))

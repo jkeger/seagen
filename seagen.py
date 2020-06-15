@@ -3,8 +3,8 @@
     A python implementation of the stretched equal area (SEA) algorithm for
     generating spherically symmetric arrangements of particles with accurate
     particle densities, e.g. for SPH initial conditions that precisely match an
-    arbitrary density profile (Kegerreis et al. 2019, MNRAS 487:4, 5029-5040,
-    https://doi.org/10.1093/mnras/stz1606).
+    arbitrary density profile (Kegerreis et al. 2019,
+    https://arxiv.org/pdf/1901.09934.pdf).
 
     See README.md and https://github.com/jkeger/seagen for more information.
 
@@ -625,7 +625,7 @@ class GenSphere(object):
     def __init__(self, N_picle_des, A1_r_prof, A1_rho_prof, A1_mat_prof=None,
                  A1_u_prof=None, A1_T_prof=None, A1_P_prof=None,
                  A1_m_rel_prof=None, do_stretch=True, A1_force_more_shells=None,
-                 verb=1):
+                 verbosity=1):
         """ Generate nested spherical shells of particles to match radial
             profiles.
 
@@ -671,7 +671,7 @@ class GenSphere(object):
                     to add more shells. Default False. Useful for e.g. a low-
                     density outer layer that doesn't have many shells.
 
-                verb (opt. int)
+                verbosity (opt. int)
                     The verbosity to control printed output:
                     0       None
                     1       Standard (default)
@@ -701,8 +701,6 @@ class GenSphere(object):
                 N_shell_tot (int)
                     The total number of shells.
         """
-        print(banner)
-
         # ========
         # Setup
         # ========
@@ -715,7 +713,7 @@ class GenSphere(object):
         self.A1_P_prof      = A1_P_prof
         self.A1_m_rel_prof  = A1_m_rel_prof
         self.do_stretch     = do_stretch
-        self.verb           = verb
+        self.verbosity      = verbosity
 
         # Maximum number of attempts allowed for tweaking particle mass and
         # number of particles in the first shell of an outer layer
@@ -740,11 +738,13 @@ class GenSphere(object):
             self.do_m_rel   = False
 
         # Verbosity
-        if self.verb >= 1:
-            self.verb_options   = {0: "None", 1: "Standard", 2: "Extra",
-                                   3: "Debug"}
+        if self.verbosity >= 1:
+            print(banner)
+            
+            self.verbosity_options   = {
+                0: "None", 1: "Standard", 2: "Extra", 3: "Debug"}
             print("Verbosity %d: %s printing" %
-                  (self.verb, self.verb_options[self.verb]))
+                  (self.verbosity, self.verbosity_options[self.verbosity]))
 
         self.N_prof         = len(self.A1_r_prof)
         self.N_shell_tot    = 0
@@ -806,7 +806,7 @@ class GenSphere(object):
         # Initial relative particle mass tweak
         dm_picle_init   = 1e-3
 
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             A1_m_layer      = self.A1_m_enc_prof[self.A1_idx_bound]
             A1_m_layer[1:]  -= A1_m_layer[:-1]
             print("\n%d layer(s):" % self.N_layer)
@@ -822,7 +822,7 @@ class GenSphere(object):
         # First (innermost) layer
         # ================
         i_layer = 0
-        if self.verb >= 1 and self.N_layer > 1:
+        if self.verbosity >= 1 and self.N_layer > 1:
             print("\n==== Layer %d ====" % (i_layer + 1))
 
         # Index of first profile shell in the next layer, or of the final shell
@@ -840,9 +840,9 @@ class GenSphere(object):
         self.dm_picle   = dm_picle_init
         N_shell_init    = 0
 
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             print("\n> Tweak the particle mass to fix the outer boundary")
-        if self.verb == 3:
+        if self.verbosity == 3:
             if self.do_m_rel:
                 header  = "    Attempt  Particle mass  Max rel mass  Relative tweak "
             else:
@@ -856,7 +856,7 @@ class GenSphere(object):
             if attempt == attempt_max:
                 raise RuntimeError("Failed after %d attempts!" % attempt_max)
 
-            if self.verb == 3:
+            if self.verbosity == 3:
                 # No endline so can add more on this line in the loop
                 if self.do_m_rel:
                     print("\n    %07d  %.5e    %.5f       %.1e " %
@@ -928,7 +928,7 @@ class GenSphere(object):
                 N_shell += 1
 
             if is_done:
-                if self.verb == 3:
+                if self.verbosity == 3:
                     print("")
                 break
 
@@ -953,7 +953,7 @@ class GenSphere(object):
             # Got one more shell, but need it to *just* fit, so go back one step
             # and retry with smaller mass changes (repeat this twice!)
             elif self.dm_picle > dm_picle_init * 1e-2:
-                if self.verb == 3:
+                if self.verbosity == 3:
                     print("  Reduce tweak", end='')
 
                 self.m_picle    *= 1 + self.dm_picle
@@ -965,14 +965,14 @@ class GenSphere(object):
                 # tiny extra bit of this layer
                 is_done = True
 
-        if self.verb == 3:
+        if self.verbosity == 3:
             print(header)
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             print("> Done particle mass tweaking!")
-        if self.verb >= 2:
+        if self.verbosity >= 2:
             print("    from %.5e to %.5e after %d attempts" %
                   (self.m_picle_des, self.m_picle, attempt))
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             print("\n%d shells in layer %d" % (N_shell, i_layer + 1))
 
         i_layer += 1
@@ -981,7 +981,7 @@ class GenSphere(object):
         # Outer layer(s)
         # ================
         while i_layer < self.N_layer:
-            if self.verb >= 1:
+            if self.verbosity >= 1:
                 print("\n==== Layer %d ====" % (i_layer + 1))
 
             # Index of first profile shell in the next layer, or of the edge
@@ -1020,10 +1020,10 @@ class GenSphere(object):
             # Vary the number of particles in the first shell of this layer
             # until the particle shell boundary matches the profile boundary
             # ========
-            if self.verb >= 1:
+            if self.verbosity >= 1:
                 print("\n> Tweak the number of particles in the first shell "
                       "to fix the outer boundary")
-            if self.verb == 3:
+            if self.verbosity == 3:
                 header  = ("    Attempt  Particles  1st shell width  "
                            "Number of shells")
                 print(header, end='')
@@ -1039,7 +1039,7 @@ class GenSphere(object):
                     raise RuntimeError("Failed after %d attempts!"
                                        % attempt_max)
 
-                if self.verb == 3:
+                if self.verbosity == 3:
                     # No endline so can add more on this line in the loop
                     print("\n    %07d  %07d    " %
                           (attempt, N_picle_shell), end='')
@@ -1066,7 +1066,7 @@ class GenSphere(object):
                     raise
                 self.dr_0   = r_outer - r_inner
 
-                if self.verb == 3:
+                if self.verbosity == 3:
                     print("%.3e" % self.dr_0, end='')
                     sys.stdout.flush()
 
@@ -1115,12 +1115,12 @@ class GenSphere(object):
 
                     N_shell += 1
 
-                if self.verb == 3:
+                if self.verbosity == 3:
                     print("        %d" % N_shell, end='')
                     sys.stdout.flush()
 
                 if is_done:
-                    if self.verb == 3:
+                    if self.verbosity == 3:
                         print("")
                     break
 
@@ -1166,19 +1166,19 @@ class GenSphere(object):
                     dN_picle_shell  = (-np.sign(dN_picle_shell)
                                        * (abs(dN_picle_shell) + 1))
 
-            if self.verb == 3:
+            if self.verbosity == 3:
                 print(header)
 
             # Add these to the previous layer(s)' shells
             A1_idx_outer.append(A1_idx_outer_tmp)
             A1_r_outer.append(A1_r_outer_tmp)
 
-            if self.verb >= 1:
+            if self.verbosity >= 1:
                 print("> Done first-shell particle number tweaking!")
-            if self.verb >= 2:
+            if self.verbosity >= 2:
                 print("    from %d to %d after %d attempts" %
                       (N_picle_init, N_picle_shell, attempt))
-            if self.verb >= 1:
+            if self.verbosity >= 1:
                 print("\n%d shells in layer %d" % (N_shell, i_layer + 1))
 
             i_layer += 1
@@ -1190,13 +1190,13 @@ class GenSphere(object):
                                - np.append(0, self.A1_r_outer[:-1]))
         self.N_shell_tot    = len(self.A1_idx_outer)
 
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             print("\n> Done profile division into shells!")
 
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             print("\n==== Particles ====\n")
             print("> Find the values for the particles in each shell")
-        if self.verb >= 2:
+        if self.verbosity >= 2:
             header  = ("    Shell   Radius     i_outer  Number   Mass       "
                        "Density    Material")
             print(header)
@@ -1248,7 +1248,7 @@ class GenSphere(object):
 
             idx_inner   = idx_outer
 
-            if self.verb >= 2:
+            if self.verbosity >= 2:
                 print("    %06d  %.3e  %07d  %07d  %.3e  %.3e  %d" %
                       (i_shell, A1_r_shell[-1], idx_outer, A1_N_shell[-1],
                        A1_m_picle_shell[-1], A1_rho_shell[-1],
@@ -1258,9 +1258,9 @@ class GenSphere(object):
                     print(header)
 
         self.A1_m_picle_shell   = np.array(A1_m_picle_shell)
-        if self.verb >= 2:
+        if self.verbosity >= 2:
             print(header)
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             extra   = ""
             if self.do_u:
                 extra   += "sp. int. energy"
@@ -1288,7 +1288,7 @@ class GenSphere(object):
         # ================
         # Generate the particles in each shell
         # ================
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             print("\n> Arrange the particles in each shell")
 
         # Placeholders
@@ -1303,7 +1303,7 @@ class GenSphere(object):
             np.arange(self.N_shell_tot), A1_N_shell, A1_m_picle_shell,
             A1_r_shell, A1_rho_shell, A1_mat_shell, A1_u_shell, A1_T_shell,
             A1_P_shell):
-            if self.verb >= 1:
+            if self.verbosity >= 1:
                 # Print progress
                 print("\r    Shell %d of %d" % (i+1, self.N_shell_tot), end='')
                 sys.stdout.flush()
@@ -1312,11 +1312,11 @@ class GenSphere(object):
 
         self.flatten_particle_arrays()
 
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             print("\n> Done particles!")
 
         self.N_picle    = len(self.A1_r)
-        if self.verb >= 1:
+        if self.verbosity >= 1:
             print("\nFinal number of particles = %d" % self.N_picle)
             print("\n> SEAGen done!")
 
@@ -1368,7 +1368,7 @@ class GenSphere(object):
         if idx_outer < idx_min:
             # Estimate the interpolation needed assuming constant density
             n_interp    = int(np.floor(idx_min / idx_outer) + 1)
-            if self.verb >= 2:
+            if self.verbosity >= 2:
                 print("\nFirst 4 particle masses bounded by profile index "
                       "idx_outer = %d: n_interp = %d " %
                       (idx_outer, n_interp))
@@ -1381,7 +1381,7 @@ class GenSphere(object):
                 n_interp,
                 int(np.floor(self.A1_m_prof[-1] / m_shell_min) + 1)
                 )
-            if self.verb >= 2:
+            if self.verbosity >= 2:
                 if n_interp == 0:
                     print("")
                 print("Final profile shell has a mass of m_prof = %.1f "
@@ -1390,8 +1390,9 @@ class GenSphere(object):
 
         # Interpolate if either check failed
         if n_interp > 0:
-            print("\n> Interpolating profiles to increase radial density ")
-            if self.verb >= 2:
+            if self.verbosity >= 1:
+                print("\n> Interpolating profiles to increase radial density ")
+            if self.verbosity >= 2:
                 print("    N_prof = %d,  n_interp = %d " %
                       (self.N_prof, n_interp))
 
@@ -1489,9 +1490,10 @@ class GenSphere(object):
             # Re-find the radii of all material boundaries
             self.find_material_boundaries()
 
-            print("> Done interpolating profiles! ")
+            if self.verbosity >= 1:
+                print("> Done interpolating profiles! ")
 
-            if self.verb >= 2:
+            if self.verbosity >= 2:
                 idx_outer   = np.searchsorted(self.A1_m_enc_prof, 4 * m_picle)
                 print("    N_prof = %d,  first idx_outer >= %d,  "
                       "final m_prof >= %.1f particles " %
