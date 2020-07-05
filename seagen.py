@@ -7,8 +7,12 @@
     https://arxiv.org/pdf/1901.09934.pdf).
 
     See README.md and https://github.com/jkeger/seagen for more information.
+    
+    SEAGen has also ben implemented and enhanced as part of the WoMa package
+    for creating rotating and non-rotating planetary (or other) profiles and 
+    also placing the particles: github.com/srbonilla/WoMa.
 
-    Jacob Kegerreis (2019) jacob.kegerreis@durham.ac.uk
+    Jacob Kegerreis (2020) jacob.kegerreis@durham.ac.uk
 
     GNU General Public License v3+, see LICENSE.txt.
 
@@ -537,7 +541,8 @@ class GenShell(object):
             a   = 0.19
         else:
             a   = 0.20
-            print("\nUntested stretching N = %d!" % N)
+            if self.verbosity >= 2:
+                print("\nWarning: stretching N = %d not manually tested" % N)
 
         return a, 10*a
 

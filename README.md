@@ -7,7 +7,10 @@ particle densities, e.g. for SPH initial conditions that precisely match an
 arbitrary density profile, as presented in Kegerreis et al. (2019), MNRAS 487:4, 
 5029-5040, https://doi.org/10.1093/mnras/stz1606.
 
-Jacob Kegerreis (2019) jacob.kegerreis@durham.ac.uk  
+See also https://github.com/srbonilla/WoMa for making the initial profiles, 
+placing particles with SEAGen, and modifications for spinning bodies.
+
+Jacob Kegerreis (2020) jacob.kegerreis@durham.ac.uk  
 Josh Borrow
 
 Visit https://github.com/jkeger/seagen to download the code including examples
