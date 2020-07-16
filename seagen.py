@@ -117,7 +117,7 @@ class GenShell(object):
                 >>> particles = seagen.GenShell(N, r)
                 >>> print(particles.x, particles.y, particles.z)
     """
-    def __init__(self, N, r, do_stretch=True, do_rotate=True):
+    def __init__(self, N, r, do_stretch=True, do_rotate=True, verbosity=1):
         """ Generate a single spherical shell of particles.
 
             Args:
@@ -135,6 +135,13 @@ class GenShell(object):
                     Default True. Set False to not randomly rotate the sphere of
                     particles after their intial placement.
 
+                verbosity (opt. int)
+                    The verbosity to control printed output:
+                    0       None
+                    1       Standard (default)
+                    2       Extra
+                    3       Debug
+
             Output attrs: (Also accessable without the A1_ prefix)
                 A1_x, A1_y, A1_z ([float])
                     Particle cartesian position arrays.
@@ -142,8 +149,9 @@ class GenShell(object):
                 Note: Spherical polar coordinates are used for the particles
                 internally but do not have the final rotation applied to them.
         """
-        self.N      = N
-        self.A1_r   = r * np.ones(N)
+        self.N          = N
+        self.A1_r       = r * np.ones(N)
+        self.verbosity  = verbosity
 
         # Derived properties
         self.A_reg  = 4 * np.pi / N
