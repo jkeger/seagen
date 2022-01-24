@@ -7,9 +7,9 @@
     https://arxiv.org/pdf/1901.09934.pdf).
 
     See README.md and https://github.com/jkeger/seagen for more information.
-    
+
     SEAGen has also ben implemented and enhanced as part of the WoMa package
-    for creating rotating and non-rotating planetary (or other) profiles and 
+    for creating rotating and non-rotating planetary (or other) profiles and
     also placing the particles: github.com/srbonilla/WoMa.
 
     Jacob Kegerreis (2020) jacob.kegerreis@durham.ac.uk
@@ -152,6 +152,7 @@ class GenShell(object):
         self.N          = N
         self.A1_r       = r * np.ones(N)
         self.verbosity  = verbosity
+        assert N >= 4, "GenShell requires N >= 4"
 
         # Derived properties
         self.A_reg  = 4 * np.pi / N
@@ -753,7 +754,7 @@ class GenSphere(object):
         # Verbosity
         if self.verbosity >= 1:
             print(banner)
-            
+
             self.verbosity_options   = {
                 0: "None", 1: "Standard", 2: "Extra", 3: "Debug"}
             print("Verbosity %d: %s printing" %
