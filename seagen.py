@@ -1381,7 +1381,7 @@ class GenSphere(object):
         idx_outer   = np.searchsorted(self.A1_m_enc_prof, 4 * m_picle)
         if idx_outer < idx_min:
             # Estimate the interpolation needed assuming constant density
-            n_interp    = int(np.floor(idx_min / idx_outer) + 1)
+            n_interp    = int(np.floor(idx_min / (idx_outer + 1)) + 1)
             if self.verbosity >= 2:
                 print("\nFirst 4 particle masses bounded by profile index "
                       "idx_outer = %d: n_interp = %d " %
@@ -1513,6 +1513,9 @@ class GenSphere(object):
                       "final m_prof >= %.1f particles " %
                       (self.N_prof, idx_outer,
                        self.A1_m_prof[-1] / m_picle))
+
+            # Recurse in case another round is needed, e.g. for m_picle << A1_m_enc_prof[0]
+            self.check_interp_profiles()
 
         return
 
