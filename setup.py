@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 setuptools.setup(
     name="seagen",
     packages=setuptools.find_packages(),
-    version="1.4.1",
+    version="1.4.2",
     description="Stretched Equal Area Generator",
     long_description=long_description,
     long_description_content_type="text/markdown",
