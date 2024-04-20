@@ -1,4 +1,6 @@
 *.pyc
+*.png
+
 dist
 build
 seagen.egg-info
