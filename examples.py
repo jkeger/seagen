@@ -148,7 +148,7 @@ def test_gen_sphere_simple():
     A1_rho_prof = 3 - 2 * A1_r_prof**2
 
     # Generate particles
-    particles = GenSphere(N_picle, A1_r_prof, A1_rho_prof, verbosity=2)
+    particles = GenSphere(N_picle, A1_r_prof, A1_rho_prof, verbosity=2, seed=12345)
 
     # Figure
     plt.figure(figsize=(7, 7))
@@ -206,6 +206,7 @@ def test_gen_sphere_layers():
         A1_mat_prof=A1_mat_prof,
         A1_T_prof=A1_T_prof,
         verbosity=2,
+        seed=12345,
     )
 
     # Figure
@@ -242,6 +243,6 @@ def test_gen_sphere_layers():
 
 if __name__ == "__main__":
     # Run the examples
-    test_gen_shell(42)
-    test_gen_sphere_simple()
+    # test_gen_shell(42)
+    # test_gen_sphere_simple()
     test_gen_sphere_layers()
