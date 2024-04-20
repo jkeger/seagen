@@ -117,7 +117,8 @@ class GenShell(object):
                 >>> particles = seagen.GenShell(N, r)
                 >>> print(particles.x, particles.y, particles.z)
     """
-    def __init__(self, N, r, do_stretch=True, do_rotate=True, verbosity=1):
+    def __init__(self, N, r, do_stretch=True, do_rotate=True, verbosity=1,
+                 rng=np.random.default_rng()):
         """ Generate a single spherical shell of particles.
 
             Args:
@@ -142,6 +143,9 @@ class GenShell(object):
                     2       Extra
                     3       Debug
 
+                rng (opt. np.random.Generator)
+                    The random number generator.
+
             Output attrs: (Also accessable without the A1_ prefix)
                 A1_x, A1_y, A1_z ([float])
                     Particle cartesian position arrays.
@@ -152,6 +156,7 @@ class GenShell(object):
         self.N          = N
         self.A1_r       = r * np.ones(N)
         self.verbosity  = verbosity
+        self.rng        = rng
         assert N >= 4, "GenShell requires N >= 4"
 
         # Derived properties
@@ -404,7 +409,7 @@ class GenShell(object):
                 # Also add a random initial offset to ensure that successive
                 # collars do not create lines of ~adjacent particles.
                 # (Second paragraph following K19 eqn (12).)
-                m       = np.random.randint(0, self.A1_N_reg_in_collar[i-1])
+                m       = self.rng.integers(0, self.A1_N_reg_in_collar[i-1])
                 phi_0_i += (m * A1_d_phi[i-1])
 
         # Fill the position arrays.
@@ -589,9 +594,9 @@ class GenShell(object):
     def apply_random_rotation(self):
         """ Rotate the shell with three random Euler angles. """
         # Random Euler angles
-        alpha   = np.random.rand() * 2*np.pi
-        beta    = np.random.rand() * 2*np.pi
-        gamma   = np.random.rand() * 2*np.pi
+        alpha   = self.rng.random() * 2*np.pi
+        beta    = self.rng.random() * 2*np.pi
+        gamma   = self.rng.random() * 2*np.pi
         A2_rot  = get_euler_rotation_matrix(alpha, beta, gamma)
 
         # Array of position vectors
@@ -639,7 +644,7 @@ class GenSphere(object):
     def __init__(self, N_picle_des, A1_r_prof, A1_rho_prof, A1_mat_prof=None,
                  A1_u_prof=None, A1_T_prof=None, A1_P_prof=None,
                  A1_m_rel_prof=None, do_stretch=True, A1_force_more_shells=None,
-                 verbosity=1):
+                 verbosity=1, seed=None):
         """ Generate nested spherical shells of particles to match radial
             profiles.
 
@@ -692,6 +697,9 @@ class GenSphere(object):
                     2       Extra
                     3       Debug
 
+                seed (opt. int)
+                    A seed for the random number generator.
+
             Output attrs: (Also accessable without the A1_ prefix)
                 A1_x, A1_y, A1_z, A1_r ([float])
                     The arrays of the particles' cartesian coordinates and
@@ -728,6 +736,7 @@ class GenSphere(object):
         self.A1_m_rel_prof  = A1_m_rel_prof
         self.do_stretch     = do_stretch
         self.verbosity      = verbosity
+        self.rng            = np.random.default_rng(seed)
 
         # Maximum number of attempts allowed for tweaking particle mass and
         # number of particles in the first shell of an outer layer
@@ -1600,7 +1609,7 @@ class GenSphere(object):
                     The radius.
 
                 rho (float)
-                    The density..
+                    The density.
 
                 u, T, P (float or None)
                     The sp. int. energy, temperature, and pressure. Or None if
@@ -1631,7 +1640,7 @@ class GenSphere(object):
             self.A1_y.append(A1_y)
             self.A1_z.append(A1_z)
         else:
-            shell = GenShell(N, r, do_stretch=self.do_stretch)
+            shell = GenShell(N, r, do_stretch=self.do_stretch, rng=self.rng)
 
             self.A1_x.append(shell.A1_x)
             self.A1_y.append(shell.A1_y)
