@@ -4,10 +4,10 @@ SEAGen
 A python implementation of the stretched equal area (SEA) algorithm for
 generating spherically symmetric arrangements of particles with accurate
 particle densities, e.g. for SPH initial conditions that precisely match an
-arbitrary density profile, as presented in Kegerreis et al. (2019), MNRAS 487:4, 
+arbitrary density profile, as presented in Kegerreis et al. (2019), MNRAS 487:4,
 5029-5040, https://doi.org/10.1093/mnras/stz1606.
 
-See also https://github.com/srbonilla/WoMa for making the initial profiles, 
+See also https://github.com/srbonilla/WoMa for making input planetary profiles,
 placing particles with SEAGen, and modifications for spinning bodies.
 
 Jacob Kegerreis (2020) jacob.kegerreis@durham.ac.uk  
@@ -75,7 +75,7 @@ Requirements
 
 Notation etc.
 -------------
-+ PEP8 is followed in most cases apart from some indentation alignment.
++ Formatted with [black](https://github.com/psf/black).
 + Arrays are explicitly labelled with a prefix `A1_`, or `An_` for an
     `n`-dimensional array.
 + Particle is abbreviated to `picle`.
