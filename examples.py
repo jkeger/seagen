@@ -39,7 +39,7 @@ deg_to_rad  = np.pi/180
 def test_gen_shell(N):
     """ Generate a single spherical shell of particles.
 
-        Show a 3D figure of the particles on the shell.
+        Save a 3D figure of the particles on the shell.
 
         Args:
             N (int)
@@ -63,7 +63,7 @@ def test_gen_shell(N):
     fig = plt.figure(figsize=(7, 7))
     ax  = fig.add_subplot(1, 1, 1, projection="3d")
 
-    # Dense longitude lines since plotting an actual sphere surface looks awful
+    # Dense longitude lines since plotting an actual sphere surface looks weird
     for phi in np.arange(0, 360, 1):
         A1_r        = np.ones(100)
         A1_theta    = np.linspace(0, np.pi, 100)
@@ -119,13 +119,13 @@ def test_gen_shell(N):
 
     plt.tight_layout()
 
-    plt.show()
+    plt.savefig("test_gen_shell.png")
 
 
 def test_gen_sphere_simple():
     """ Generate spherical particle positions from a simple density profile.
 
-        Show a figure of the particles on the radial density profile.
+        Save a figure of the particles on the radial density profile.
     """
     print("\n=========================================================="
           "\n SEAGen sphere particles generation with a simple profile "
@@ -158,14 +158,14 @@ def test_gen_sphere_simple():
 
     plt.tight_layout()
 
-    plt.show()
+    plt.savefig("test_gen_sphere_simple.png")
 
 
 def test_gen_sphere_layers():
     """ Generate spherical particle positions from a density profile with
         multiple layers, density discontinuities, and a temperature profile.
 
-        Show a figure of the particles on the radial density and temperature
+        Save a figure of the particles on the radial density and temperature
         profiles.
     """
     print("\n==============================================================="
@@ -215,7 +215,7 @@ def test_gen_sphere_layers():
 
     plt.tight_layout()
 
-    plt.show()
+    plt.savefig("test_gen_sphere_layers.png")
 
 
 # //////////////////////////////////////////////////////////////////////////// #
