@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 setuptools.setup(
     name="seagen",
     packages=setuptools.find_packages(),
-    version="1.4.2",
+    version="1.5",
     description="Stretched Equal Area Generator",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -24,7 +24,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Development Status :: 4 - Beta",
-        ],
+    ],
     python_requires=">=3",
     install_requires=["numpy"],
     keywords=["particle arrangement density sphere shell SPH initial conditions"],
